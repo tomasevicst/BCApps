@@ -52,6 +52,8 @@ Read complete relevant procedures for a small number of important flows. Identif
 - Validation, decisions, state changes, delegation, errors, and final outcomes.
 - Events, subscribers, interfaces, extension objects, and replacement patterns.
 - For every interface-backed extensible enum discussed as a customization surface, trace the interface, base enum, `Extensible` setting, `Implementation` bindings, and a repository `enumextension` example when needed.
+- For reuse, duplicate detection, fallback, ordering, and other policy claims, trace the call path to the procedure that makes the decision. Separate adapter-specific gates and source translation from shared service policy.
+- For commit, rollback, persistence-after-failure, or independent-transaction claims, collect explicit transaction evidence such as `Commit()`, verified commit behavior, documented posting semantics, or runtime/test proof. Procedure order and loops are not sufficient.
 - Local patterns and legacy approaches that should not be copied.
 - Cross-area calls that require a link or explicit boundary statement.
 
@@ -183,6 +185,8 @@ Validate the generated set before reporting completion:
 - Verify every selected test scenario and Test Library helper has a direct, resolving source link.
 - Verify app dependency wording distinguishes an empty `dependencies` array from the application and platform targets.
 - Verify interface-backed enum guidance states the source-proven registration mechanism and does not leave a resolvable mechanism unresolved.
+- Verify every policy claim is attributed to the component that implements its deciding branch, not merely to a caller of shared behavior.
+- Verify every transaction-semantics claim has explicit code, documented API, or runtime evidence; otherwise remove the claim or mark it unresolved.
 - Search maintained docs for volatile exact or approximate implementation counts and replace them with stable qualitative descriptions.
 - Search for object, field, procedure, event, and test inventories that should be prose instead.
 - Check applicable Markdown instructions and whitespace.

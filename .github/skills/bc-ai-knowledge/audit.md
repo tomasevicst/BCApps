@@ -41,6 +41,8 @@ Use parallel read-only investigations when available.
 - Identify volatile exact or approximate counts of implementation elements that will drift without adding durable knowledge.
 - Verify app dependency wording distinguishes explicit extension dependencies from application and platform targets.
 - For interface-backed enums described as extension surfaces, verify the documented registration mechanism against `Extensible` and `Implementation` declarations.
+- Trace reuse, duplicate detection, fallback, ordering, and other policy claims to the procedure that makes the decision. Flag claims attributed only to adapters or callers when policy lives in a shared service.
+- Require explicit evidence for commit, rollback, persistence-after-failure, and independent-transaction claims. Loops, call order, or earlier successful operations are not proof.
 - Separate supported intent, observed behavior, proposals, and unresolved questions.
 - Find important claims without usable evidence links.
 

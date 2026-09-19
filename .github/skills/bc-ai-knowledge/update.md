@@ -52,6 +52,8 @@ For each relevant changed file:
 5. Follow links upward only when a parent summary, child index, or ownership boundary became inaccurate.
 6. Recompute child-boundary and namespace ownership only when files moved, namespaces changed, or responsibilities split or merged.
 7. Identify existing claims invalidated by deletion, rename, changed behavior, or changed test evidence.
+8. For policy changes, trace callers to the procedure that owns the deciding branch and update ownership wording at the nearest correct scope.
+9. For transaction claims, compare explicit commit behavior, posting API contracts, and runtime evidence before changing persistence or rollback documentation.
 
 Independently of changed files, compare the current documentation hierarchy with the recomputed boundary coverage ledger. Propose missing local `AGENTS.md` files when semantic complexity or representative-task analysis shows that parent context is insufficient. Do not create one file per folder; preserve `link` and `omit` decisions for simple children.
 
@@ -143,6 +145,8 @@ Do not rewrite whole files when a focused section edit is sufficient.
 - Confirm every selected test scenario and Test Library helper has a direct, resolving source link.
 - Confirm app dependency wording distinguishes explicit extension dependencies from application and platform targets.
 - Confirm interface-backed enum guidance still matches `Extensible` and `Implementation` declarations.
+- Confirm policy ownership still follows the implementation call path and does not assign shared policy to adapters.
+- Confirm transaction-semantics claims still have explicit code, documented API, or runtime evidence.
 - Remove or generalize volatile implementation counts unless the number is a product contract.
 - Check applicable Markdown instructions and whitespace.
 - Review the final diff and confirm only approved documentation files changed.
