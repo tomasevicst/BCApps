@@ -128,6 +128,10 @@ Do not rewrite whole files when a focused section edit is sufficient.
 - Confirm parent and child scopes remain non-overlapping.
 - Confirm namespace ownership and supporting-location links remain accurate.
 - Confirm selected test descriptions match test source and make no unproved execution claims.
+- Confirm every selected test scenario and Test Library helper has a direct, resolving source link.
+- Confirm app dependency wording distinguishes explicit extension dependencies from application and platform targets.
+- Confirm interface-backed enum guidance still matches `Extensible` and `Implementation` declarations.
+- Remove or generalize volatile implementation counts unless the number is a product contract.
 - Check applicable Markdown instructions and whitespace.
 - Review the final diff and confirm only approved documentation files changed.
 

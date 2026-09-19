@@ -23,7 +23,7 @@ Use parallel read-only investigations when the environment supports them. Give e
 
 Determine:
 
-- App metadata and source roots from `app.json` and repository structure.
+- App metadata and source roots from structured `app.json` and repository structure. Keep explicit extension dependencies, application target, platform target, and `internalsVisibleTo` distinct.
 - AL objects grouped by declaration type, physical folder, and exact namespace.
 - Parent, child, and neighboring responsibilities.
 - App dependencies that materially affect the local mental model.
@@ -49,6 +49,7 @@ Read complete relevant procedures for a small number of important flows. Identif
 - User or system entry points.
 - Validation, decisions, state changes, delegation, errors, and final outcomes.
 - Events, subscribers, interfaces, extension objects, and replacement patterns.
+- For every interface-backed extensible enum discussed as a customization surface, trace the interface, base enum, `Extensible` setting, `Implementation` bindings, and a repository `enumextension` example when needed.
 - Local patterns and legacy approaches that should not be copied.
 - Cross-area calls that require a link or explicit boundary statement.
 
@@ -59,6 +60,7 @@ Do not attempt repository-wide end-to-end process reconstruction.
 Use bounded searches based on the scoped objects, procedures, namespace, and app dependencies. Read selected tests in full and return:
 
 - Business setup, action, and meaningful assertion.
+- Exact relative Markdown link to the selected test source file and any material Test Library helper.
 - Important scenarios demonstrated by source.
 - Material behavior without located coverage.
 - Contradictions between test source, implementation, and existing documentation.
@@ -145,7 +147,7 @@ After approval:
 5. Keep category files flat within `docs/`. Respect existing user-created subdirectories but do not create new category subdirectories.
 6. Use relative Markdown links with `/` separators.
 7. Keep app and parent files concise. Link to child detail rather than repeating it.
-8. Keep scoring counts and object inventories in the documentation map only. Do not copy them into `AGENTS.md` or focused documentation.
+8. Keep scoring counts, object inventories, and volatile counts of events, subscribers, procedures, or tests in the documentation map only. Do not copy them into `AGENTS.md` or focused documentation unless a number is itself a product contract.
 9. Follow the writing standard for authority, tests, diagrams, and excluded content.
 
 ## Phase 5: Validate
@@ -158,6 +160,10 @@ Validate the generated set before reporting completion:
 - Check that parent, child, folder, and namespace scopes do not duplicate detailed content.
 - Confirm namespace docs live under the approved physical owner and link supporting locations.
 - Check that selected tests are explained by scenario and no execution claim was invented.
+- Verify every selected test scenario and Test Library helper has a direct, resolving source link.
+- Verify app dependency wording distinguishes an empty `dependencies` array from the application and platform targets.
+- Verify interface-backed enum guidance states the source-proven registration mechanism and does not leave a resolvable mechanism unresolved.
+- Search maintained docs for volatile exact or approximate implementation counts and replace them with stable qualitative descriptions.
 - Search for object, field, procedure, event, and test inventories that should be prose instead.
 - Check applicable Markdown instructions and whitespace.
 - Review the final diff and confirm only approved documentation files changed.

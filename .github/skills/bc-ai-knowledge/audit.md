@@ -36,6 +36,9 @@ Use parallel read-only investigations when available.
 
 - Check whether each document explains purpose, boundaries, behavior, relationships, extension surfaces, or gotchas.
 - Identify mechanical object, field, procedure, event, or test inventories.
+- Identify volatile exact or approximate counts of implementation elements that will drift without adding durable knowledge.
+- Verify app dependency wording distinguishes explicit extension dependencies from application and platform targets.
+- For interface-backed enums described as extension surfaces, verify the documented registration mechanism against `Extensible` and `Implementation` declarations.
 - Separate supported intent, observed behavior, proposals, and unresolved questions.
 - Find important claims without usable evidence links.
 
@@ -43,6 +46,7 @@ Use parallel read-only investigations when available.
 
 - Use bounded searches for tests related to the documented scope.
 - Compare selected test descriptions with setup, action, and assertions in source.
+- Verify every selected scenario and Test Library helper links directly to its exact source file.
 - Identify relevant source changes newer than the documentation using Git history when available.
 - Treat newer source as a freshness risk, not proof that prose is wrong.
 - Treat broken evidence links or contradicted claims as concrete defects.
