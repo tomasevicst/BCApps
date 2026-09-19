@@ -30,7 +30,9 @@ Determine:
 - Existing documentation and candidate child boundaries.
 - Namespace declaration files and supporting locations outside a namespace owner.
 
-Apply the scoring reference bottom-up. Return evidence and recommendations, not an object inventory for publication.
+Build the complete boundary coverage ledger and apply numeric scoring plus semantic complexity bottom-up. For every immediate AL-owning child, return its responsibility, namespaces, semantic signals, score, `document`/`link`/`omit` decision, and reason. Recursively inspect descendants when the scoring reference requires it. Return evidence and recommendations, not an object inventory for publication.
+
+For large multi-area scopes, test representative maintenance tasks in the most complex children. State which `AGENTS.md` Copilot CLI would load and whether it provides the local invariants, ownership boundaries, risks, and test pointers needed before editing.
 
 ### Data model
 
@@ -101,9 +103,21 @@ Use this structure:
 
 ### Candidate boundaries
 
-| Boundary | Score | Classification | Decision | Reason |
-|----------|-------|----------------|----------|--------|
+| Boundary | Responsibility | Semantic signals | Score/classification | Decision | Reason |
+|----------|----------------|------------------|----------------------|----------|--------|
+| ... | ... | ... | ... | document, link, or omit | ... |
+
+### Boundary coverage
+
+| Immediate child | AL ownership | Descendants evaluated | Decision | Parent coverage or local value |
+|-----------------|--------------|-----------------------|----------|--------------------------------|
 | ... | ... | ... | document, link, or omit | ... |
+
+### Representative task context
+
+| Task area | Nearest AGENTS.md | Context sufficient | Missing local knowledge |
+|-----------|-------------------|--------------------|-------------------------|
+| ... | ... | yes or no | ... |
 
 ### Files
 
@@ -123,6 +137,8 @@ Use this structure:
 ```
 
 For every proposed file, state why it earns its existence. `AGENTS.md` is required for an approved scope. Every focused file is conditional.
+
+The boundary coverage table must include every immediate AL-owning child. For a large multi-area scope, proposing zero child boundaries requires representative-task evidence and explicit user approval of that shallow hierarchy. A low numeric score cannot override a supported semantic-complexity signal without a reasoned `link` decision.
 
 For namespace scope, show the selected app root, dominant physical owner, supporting locations inside that app, and exact file counts. Ownership ambiguity must already be resolved during preflight.
 
@@ -158,6 +174,10 @@ Validate the generated set before reporting completion:
 - Verify every relative link and referenced source path.
 - Verify each focused file matches evidence and has one clear purpose.
 - Check that parent, child, folder, and namespace scopes do not duplicate detailed content.
+- Verify every immediate AL-owning child appears in the approved boundary coverage ledger.
+- Verify each accepted child boundary has an `AGENTS.md` and each parent links to accepted children.
+- For large multi-area scopes, verify representative tasks receive sufficient context from the nearest `AGENTS.md`; fail validation when zero child boundaries remain unsupported.
+- Verify semantically complex low-count modules were documented or deliberately linked, not omitted solely by score.
 - Confirm namespace docs live under the approved physical owner and link supporting locations.
 - Check that selected tests are explained by scenario and no execution claim was invented.
 - Verify every selected test scenario and Test Library helper has a direct, resolving source link.
@@ -175,6 +195,7 @@ Report:
 - Resolved scope and physical owner.
 - Files created or updated.
 - Child boundaries linked or intentionally omitted.
+- Boundary coverage decisions and representative-task context results.
 - Source and selected tests reviewed.
 - Microsoft Learn sources used, or confirmation that Learn enrichment was unavailable or unnecessary.
 - Observed behavior, approved intent sources, and unresolved questions.

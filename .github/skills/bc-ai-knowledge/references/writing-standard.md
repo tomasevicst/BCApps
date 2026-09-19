@@ -17,6 +17,12 @@ Use the Camp-AIR Docs Pattern at every physical scope:
 
 Do not copy detailed content between levels. When a child scope owns a subject, its parent provides only enough context to explain why the child matters.
 
+Progressive disclosure is incomplete when a large multi-area scope has only one automatically loaded `AGENTS.md` and local work still requires broad documentation or substantial source rediscovery. It also does not mean creating documentation in every folder.
+
+For every immediate AL-owning child folder, make an explicit `document`, `link`, or `omit` decision using the boundary coverage and semantic-complexity rules in [AL documentation scoring](./al-scoring.md). Create a local `AGENTS.md` only when that subtree owns a distinct mental model, invariant set, extension contract, algorithm, integration boundary, or test contract that the parent cannot explain concisely.
+
+A hierarchy is deep enough when representative changes in each complex subtree load a nearby `AGENTS.md` that provides the local invariants, ownership boundaries, risks, and test pointers needed before editing. A parent link to source is not a substitute when the reader must reconstruct those facts from implementation.
+
 ## Reader contract
 
 A developer who understands AL but is new to the area should be able to answer:
@@ -159,6 +165,9 @@ Existing human documentation is authoritative prose unless evidence shows it is 
 - Selected tests are explained by scenario, linked directly to test source, and not listed mechanically.
 - Volatile discovery counts do not appear as maintained knowledge unless the number is a product contract.
 - Parent and child scopes do not duplicate detailed content.
+- Every immediate AL-owning child has a documented `document`, `link`, or `omit` decision.
+- Large multi-area scopes with no child boundaries include representative-task evidence that parent context is sufficient.
+- Semantically complex low-count modules are not omitted solely because their numeric score is low.
 - Namespace documentation has a real physical owner.
 - Unsupported intent is marked observed or unresolved.
 - No excluded release, localization, partner, or multi-app claims were introduced.

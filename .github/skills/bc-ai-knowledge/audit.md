@@ -23,7 +23,9 @@ Use parallel read-only investigations when available.
 - Inventory recognized AL declarations by folder and exact namespace.
 - Read `app.json` and identify nested app exclusions.
 - Recompute folder and namespace candidate scores bottom-up.
+- Build the complete boundary coverage ledger for every immediate AL-owning child and recursively evaluate semantic-complexity candidates.
 - Identify the expected parent, local, child, and supporting boundaries.
+- For large multi-area scopes, test representative maintenance tasks in the most complex children against the nearest `AGENTS.md` context.
 
 ### Existing documentation
 
@@ -59,6 +61,7 @@ Use scoring and discovered evidence to determine the minimum useful set:
 - `<physical-owner>/AGENTS.md` for folder or namespace scope.
 - Focused files only when their evidence would add substantial knowledge.
 - Child documentation for accepted `MUST_DOCUMENT` and `SHOULD_DOCUMENT` boundaries, unless overlap makes a link more appropriate.
+- Local context for semantic-complexity candidates even when their numeric score is low, unless a reasoned parent link is sufficient.
 
 Do not count empty placeholders or mechanical inventories as useful coverage.
 An empty `docs` directory is context, not a finding status. Classify each justified missing file as `MISSING`.
@@ -97,6 +100,8 @@ Score each dimension from 0 to 3.
 Score:
 
 - Scope coverage.
+- Hierarchy depth and boundary coverage.
+- Representative-task context fitness.
 - Physical placement and ownership.
 - Progressive navigation.
 - Human readability and signal.
@@ -138,6 +143,12 @@ Return one report:
 | File or boundary | Expected | Current status | Reason |
 |------------------|----------|----------------|--------|
 | ... | yes or no | ... | ... |
+
+## Boundary coverage
+
+| Immediate child | Semantic signals | Decision | Current context | Recommendation |
+|-----------------|------------------|----------|-----------------|----------------|
+| ... | ... | document, link, or omit | ... | ... |
 
 ## Recommended next steps
 

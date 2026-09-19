@@ -22,6 +22,20 @@ Files that contain no recognized object declaration can still provide evidence, 
 
 The explicitly requested app, folder, or resolved namespace owner is always a candidate, even when its score is low.
 
+### Boundary coverage ledger
+
+For app and folder scopes, build a complete ledger before scoring:
+
+1. List every immediate child folder that owns AL source recursively, excluding nested app roots.
+2. Assign each child one decision: `document`, `link`, or `omit`.
+3. Record its responsibility, owned namespaces, important dependencies, semantic-complexity signals, score, and decision reason.
+4. Recursively evaluate descendants when a child contains multiple coherent responsibilities or namespaces, or when a descendant owns a semantic-complexity signal.
+5. Stop recursion when a folder has one coherent responsibility and no descendant would provide more specific context.
+
+Every immediate AL-owning child must appear in the documentation map, including omitted children. A directory's existence alone does not justify documentation, but no child may disappear from analysis merely because its parent was documented.
+
+### Bottom-up ownership
+
 For child folders:
 
 1. Walk from the deepest folders toward the requested root.
@@ -30,7 +44,44 @@ For child folders:
 4. Once a child boundary is accepted, its detailed evidence belongs to the child. The parent receives only a responsibility summary and link.
 5. Do not propose documentation for a chain of ancestors that would describe the same evidence.
 
+A parent boundary can own several small related children when they share one mental model. Prefer the narrowest coherent owner, not the deepest possible folder and not one file set per directory.
+
 For namespace scope, score exact namespace matches within the selected app root as one logical area after resolving its physical owner. Supporting files inside that app root contribute evidence but do not create another namespace document. Do not aggregate layers or independent apps.
+
+## Semantic complexity
+
+Object counts estimate navigation cost but do not measure design complexity. Mark a candidate with a semantic-complexity signal when bounded source and test reading finds one of these:
+
+- A public interface, extensible enum, or strategy/registration contract whose implementations live across several objects or folders.
+- Dynamic `RecordRef`, `RecordId`, `FieldRef`, or `Variant` traversal, recursive graph walking, configurable field mapping, expression parsing, or runtime dispatch.
+- Rule ordering, precedence, fallback, propagation, or state-transition behavior that is not clear from declarations.
+- Orchestration across transaction, posting, workflow, job queue, or background-session boundaries.
+- Several event subscribers that together adapt one external business process and have local gating, filtering, error, or idempotency rules.
+- Important invariants, failure modes, or ownership boundaries that a developer must know before changing the subtree.
+- Selected tests that establish a distinct local behavioral contract not explained adequately by parent documentation.
+- Existing parent documentation that tells readers to inspect a local implementation directly, or marks a local mechanism unresolved because its rules are too detailed for the parent.
+
+Apply semantic complexity after the numeric score:
+
+- One supported signal raises an `OPTIONAL` candidate to at least `SHOULD_DOCUMENT` review. Propose local `AGENTS.md` when the knowledge would materially reduce rediscovery; otherwise record a justified `link` decision.
+- Two independent signals, or one central extension/algorithm contract with meaningful tests, raises the candidate to `MUST_DOCUMENT` review.
+- A semantic override is not automatic file creation. The documentation map must still show why local context is better than extending the parent document.
+- Do not use large file size, procedure count, namespace count, or event count alone as a semantic signal.
+
+## Large-scope sanity gate
+
+Treat a scope as large and multi-area when any of these are true:
+
+- It owns at least 50 recognized AL objects.
+- It has at least 5 immediate AL-owning child folders.
+- It contains at least 3 coherent namespaces or responsibilities.
+
+If discovery proposes no child documentation boundaries for such a scope:
+
+1. Show the coverage-ledger decision for every immediate child.
+2. Test representative maintenance tasks in the most complex children: identify which `AGENTS.md` Copilot CLI would load and whether it contains the needed local invariants, change risks, and test pointers.
+3. Explain why parent documentation is sufficient for each semantic-complexity signal found.
+4. Mark zero child boundaries as an unresolved documentation-map decision unless this evidence supports the omission.
 
 ## Score
 

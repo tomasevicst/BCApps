@@ -26,6 +26,7 @@ Do not broaden an exact namespace to child namespaces. Do not broaden a folder r
 4. Exclude nested directories that contain another `app.json`; they are independent apps.
 5. Discover related test apps only through explicit app dependencies, established sibling conventions, or direct test references. Do not scan every test app in the repository.
 6. Use the app root as documentation owner. App orientation belongs in `<app-root>/AGENTS.md`; focused files belong in `<app-root>/docs/`.
+7. Build a boundary coverage ledger for every immediate AL-owning source folder and recurse according to [AL documentation scoring](./al-scoring.md).
 
 ## Folder scope
 
@@ -35,6 +36,7 @@ Do not broaden an exact namespace to child namespaces. Do not broaden a folder r
 4. Discover child documentation candidates bottom-up using [AL documentation scoring](./al-scoring.md).
 5. Use the requested folder as documentation owner. Its files belong in `<folder>/docs/`.
 6. If the folder contains several unrelated namespaces or responsibilities, show that in the documentation map and propose coherent child boundaries rather than one catch-all document.
+7. Record a `document`, `link`, or `omit` decision for every immediate AL-owning child before resolving the hierarchy.
 
 ## Namespace scope
 
@@ -93,6 +95,7 @@ Before a mode continues, record:
 | Primary AL files | Files directly owned by the resolved scope. |
 | Supporting locations | Relevant files outside the physical owner. |
 | Child boundaries | Accepted or candidate child scopes that own detail. |
+| Boundary coverage | Decision and reason for every immediate AL-owning child. |
 | Existing docs | Local, parent, and child documentation that must be preserved or linked. |
 | Ambiguities | Decisions that require user confirmation. |
 
