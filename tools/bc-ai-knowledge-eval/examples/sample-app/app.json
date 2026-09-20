@@ -1,0 +1,13 @@
+{
+  "id": "00000000-0000-0000-0000-000000000001",
+  "name": "BC AI Knowledge Eval Sample",
+  "publisher": "Synthetic",
+  "version": "1.0.0.0",
+  "runtime": "15.0",
+  "idRanges": [
+    {
+      "from": 50100,
+      "to": 50149
+    }
+  ]
+}

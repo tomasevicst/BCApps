@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "evaluation_id": "sample-document-policy-fake-cli-eval",
+  "app_path": "tools/bc-ai-knowledge-eval/examples/sample-app",
+  "questions_file": "questions.example.jsonl",
+  "docs_manifest": "docs-manifest.example.json",
+  "output_root": "C:/temp/bc-ai-knowledge-eval",
+  "answer_model": "fake-model",
+  "economical_model": null,
+  "judge_model": "fake-judge-model",
+  "repeats": 1,
+  "random_seed": 20260920,
+  "timeout_seconds": 30,
+  "source_mode": "working-tree",
+  "source_commit": null,
+  "workspace_paths": [
+    "tools/bc-ai-knowledge-eval/examples/sample-app"
+  ],
+  "copilot_command": "python",
+  "copilot_arguments_prefix": [
+    "{{REPOSITORY_ROOT}}/tools/bc-ai-knowledge-eval/tests/fixtures/fake_copilot.py"
+  ],
+  "available_tools": [
+    "view",
+    "grep",
+    "glob"
+  ]
+}

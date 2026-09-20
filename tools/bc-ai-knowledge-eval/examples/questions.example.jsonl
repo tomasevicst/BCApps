@@ -1,0 +1,1 @@
+{"schema_version":"1.0","question_id":"SAMPLE-001","question":"When does the sample app reuse an existing review instead of creating a new one?","context":"Synthetic example only.","category":"business-logic","tags":["sample"],"expected_evidence":["ReviewManagement.Codeunit.al"],"material_error_traps":["Claiming closed reviews are reused"]}

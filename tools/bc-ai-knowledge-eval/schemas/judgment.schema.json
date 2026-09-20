@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://microsoft.github.io/BCApps/bc-ai-knowledge-eval/judgment.schema.json",
+  "title": "BC AI knowledge evaluation judgment",
+  "type": "object",
+  "required": ["schema_version", "judgment_id", "question_id", "comparison", "generated_by", "review_status"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "judgment_id": { "type": "string" },
+    "question_id": { "type": "string" },
+    "comparison": { "enum": ["C0_vs_C1", "E0_vs_E1", "blind_pair"] },
+    "generated_by": { "enum": ["copilot_cli", "manual", "external_llm", "human"] },
+    "review_status": { "enum": ["unreviewed", "llm-consensus", "human-reviewed", "adjudicated"] },
+    "blind_mapping": { "type": "object" },
+    "scores": { "type": "object" },
+    "winner": { "enum": ["A", "B", "tie", "unsure"] },
+    "confidence": { "enum": ["high", "medium", "low"] },
+    "evidence": { "type": ["array", "object"] },
+    "material_errors": { "type": "array" }
+  },
+  "additionalProperties": true
+}

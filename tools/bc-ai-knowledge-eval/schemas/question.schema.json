@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://microsoft.github.io/BCApps/bc-ai-knowledge-eval/question.schema.json",
+  "title": "BC AI knowledge evaluation question",
+  "type": "object",
+  "required": ["schema_version", "question_id", "question"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "question_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "question": { "type": "string", "minLength": 1 },
+    "context": { "type": ["string", "null"] },
+    "category": { "type": ["string", "null"] },
+    "tags": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "notes": { "type": ["string", "null"] },
+    "expected_evidence": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "material_error_traps": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+  },
+  "additionalProperties": false
+}

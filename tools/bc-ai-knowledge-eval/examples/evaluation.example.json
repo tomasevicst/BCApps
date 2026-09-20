@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "evaluation_id": "sample-document-policy-eval",
+  "app_path": "tools/bc-ai-knowledge-eval/examples/sample-app",
+  "questions_file": "questions.example.jsonl",
+  "docs_manifest": "docs-manifest.example.json",
+  "output_root": "C:/temp/bc-ai-knowledge-eval",
+  "answer_model": "replace-with-installed-model-name",
+  "economical_model": null,
+  "judge_model": "replace-with-different-installed-model-name",
+  "repeats": 1,
+  "random_seed": 20260920,
+  "timeout_seconds": 900,
+  "source_mode": "working-tree",
+  "source_commit": null,
+  "workspace_paths": [
+    "tools/bc-ai-knowledge-eval/examples/sample-app"
+  ],
+  "copilot_command": "copilot"
+}

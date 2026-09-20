@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://microsoft.github.io/BCApps/bc-ai-knowledge-eval/evaluation-config.schema.json",
+  "title": "BC AI knowledge evaluation configuration",
+  "type": "object",
+  "required": ["schema_version", "evaluation_id", "app_path", "questions_file", "docs_manifest", "output_root", "answer_model"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "evaluation_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "app_path": { "type": "string", "minLength": 1 },
+    "questions_file": { "type": "string", "minLength": 1 },
+    "docs_manifest": { "type": "string", "minLength": 1 },
+    "output_root": { "type": "string", "minLength": 1 },
+    "answer_model": { "type": "string", "minLength": 1 },
+    "economical_model": { "type": ["string", "null"] },
+    "judge_model": { "type": ["string", "null"] },
+    "repeats": { "type": "integer", "minimum": 1, "default": 1 },
+    "random_seed": { "type": "integer", "default": 20260920 },
+    "timeout_seconds": { "type": "integer", "minimum": 1, "default": 900 },
+    "source_mode": { "enum": ["commit", "working-tree"], "default": "commit" },
+    "source_commit": { "type": ["string", "null"] },
+    "workspace_paths": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "copilot_command": { "type": "string", "default": "copilot" },
+    "python_command": { "type": "string", "default": "python" },
+    "metrics_db_path": { "type": ["string", "null"] },
+    "copilot_arguments_prefix": { "type": "array", "items": { "type": "string" } },
+    "available_tools": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 },
+      "default": ["view", "grep", "glob"]
+    }
+  },
+  "additionalProperties": false
+}
