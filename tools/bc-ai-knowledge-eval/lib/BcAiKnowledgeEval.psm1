@@ -1056,8 +1056,17 @@ function ConvertFrom-JudgeLineProtocol {
         }
     }
     foreach ($answer in @('A', 'B')) {
-        if (-not $grounding.ContainsKey($answer)) { throw "Evidence line protocol is missing GROUNDING|$answer." }
-        if (-not @($claims | Where-Object answer -eq $answer).Count) { throw "Evidence line protocol has no CLAIM for answer $answer." }
+        if (-not $grounding.ContainsKey($answer)) { $grounding[$answer] = 0 }
+        if (-not @($claims | Where-Object answer -eq $answer).Count) {
+            $grounding[$answer] = 0
+            $claims.Add([pscustomobject]@{
+                answer = $answer
+                claim = 'The judge returned no structured critical claim for this answer.'
+                status = 'unresolved'
+                evidence = @()
+                material_error = $false
+            })
+        }
     }
     $claimArray = $claims.ToArray()
     return [pscustomobject]@{

@@ -62,7 +62,6 @@ def main() -> int:
         print(f"GROUNDING|{winner}|3")
         print(f"GROUNDING|{loser}|1")
         print(f"CLAIM|{winner}|verified|false|AGENTS.md;src/ReviewManagement.Codeunit.al|Closed reviews are not reused.")
-        print(f"CLAIM|{loser}|unsupported|false|AGENTS.md|The exact policy is not explicit.")
         return 0
 
     if "Return JSON only with 0-to-3 scores" in prompt:
