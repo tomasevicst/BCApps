@@ -686,7 +686,7 @@ function New-BcAiKnowledgeEvalWorkspaces {
         }
     }
     if ($Force) {
-        foreach ($path in @($workspaceRoot, $manifestRoot, (Join-Path $evaluationRoot 'run-packs'), (Join-Path $evaluationRoot 'runs'), (Join-Path $evaluationRoot 'judge-packs'), (Join-Path $evaluationRoot 'judge-pass-runs'), (Join-Path $evaluationRoot 'judgments'), (Join-Path $evaluationRoot 'reports'), (Join-Path $evaluationRoot 'calibration'))) {
+        foreach ($path in @($workspaceRoot, $manifestRoot, (Join-Path $evaluationRoot 'run-packs'), (Join-Path $evaluationRoot 'runs'), (Join-Path $evaluationRoot 'judge-packs'), (Join-Path $evaluationRoot 'judge-pass-runs'), (Join-Path $evaluationRoot 'judge-pass-failures'), (Join-Path $evaluationRoot 'judgments'), (Join-Path $evaluationRoot 'reports'), (Join-Path $evaluationRoot 'calibration'))) {
             Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue
         }
         Remove-Item -LiteralPath $evaluationManifestPath -Force -ErrorAction SilentlyContinue
@@ -956,6 +956,20 @@ function Get-JudgePrompt {
         Replace('{{ANSWER_B}}', [string]$Descriptor.answer_b.response_text)
 }
 
+function Get-JudgeRetryPrompt {
+    param(
+        [Parameter(Mandatory = $true)] $Context,
+        [Parameter(Mandatory = $true)] $Descriptor,
+        [Parameter(Mandatory = $true)] [ValidateSet('content', 'evidence')] [string] $Pass
+    )
+
+    $templateName = "judge-$Pass-retry-prompt.md"
+    $template = Get-Content -LiteralPath (Join-Path (Split-Path $PSScriptRoot -Parent) "templates/$templateName") -Raw -Encoding UTF8
+    return $template.Replace('{{QUESTION}}', [string]$Descriptor.question.question).
+        Replace('{{ANSWER_A}}', [string]$Descriptor.answer_a.response_text).
+        Replace('{{ANSWER_B}}', [string]$Descriptor.answer_b.response_text)
+}
+
 function Get-JudgePackRecord {
     param(
         [Parameter(Mandatory = $true)] $Context,
@@ -974,8 +988,82 @@ function Get-JudgePackRecord {
         answer_b = $Descriptor.answer_b.response_text
         content_prompt = Get-JudgePrompt -Context $Context -Descriptor $Descriptor -Pass content
         evidence_prompt = Get-JudgePrompt -Context $Context -Descriptor $Descriptor -Pass evidence
+        content_retry_prompt = Get-JudgeRetryPrompt -Context $Context -Descriptor $Descriptor -Pass content
+        evidence_retry_prompt = Get-JudgeRetryPrompt -Context $Context -Descriptor $Descriptor -Pass evidence
         generated_by = 'manual'
         review_status = 'unreviewed'
+    }
+}
+
+function ConvertFrom-JudgeLineProtocol {
+    param(
+        [Parameter(Mandatory = $true)] [string] $Text,
+        [Parameter(Mandatory = $true)] [ValidateSet('content', 'evidence')] [string] $Pass
+    )
+
+    $lines = @($Text -split '\r?\n' | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('```') })
+    if ($Pass -eq 'content') {
+        $dimensions = @('correctness', 'completeness_actionability', 'scope_fit', 'uncertainty_safety')
+        $scores = @{ A = @{}; B = @{} }
+        $winners = @{}
+        $overall = $null
+        $confidence = $null
+        foreach ($line in $lines) {
+            $parts = @($line -split '\|')
+            if ($parts.Count -eq 4 -and $parts[0] -eq 'SCORE' -and $parts[1] -in @('A', 'B') -and $parts[2] -in $dimensions -and $parts[3] -match '^[0-3]$') {
+                $scores[$parts[1]][$parts[2]] = [int]$parts[3]
+            } elseif ($parts.Count -eq 3 -and $parts[0] -eq 'WINNER' -and $parts[1] -in $dimensions -and $parts[2] -in @('A', 'B', 'tie', 'unsure')) {
+                $winners[$parts[1]] = $parts[2]
+            } elseif ($parts.Count -eq 2 -and $parts[0] -eq 'OVERALL' -and $parts[1] -in @('A', 'B', 'tie', 'unsure')) {
+                $overall = $parts[1]
+            } elseif ($parts.Count -eq 2 -and $parts[0] -eq 'CONFIDENCE' -and $parts[1] -in @('high', 'medium', 'low')) {
+                $confidence = $parts[1]
+            }
+        }
+        foreach ($answer in @('A', 'B')) {
+            foreach ($dimension in $dimensions) {
+                if (-not $scores[$answer].ContainsKey($dimension)) { throw "Content line protocol is missing SCORE|$answer|$dimension." }
+            }
+        }
+        foreach ($dimension in $dimensions) {
+            if (-not $winners.ContainsKey($dimension)) { throw "Content line protocol is missing WINNER|$dimension." }
+        }
+        if (-not $overall) { throw 'Content line protocol is missing OVERALL.' }
+        if (-not $confidence) { throw 'Content line protocol is missing CONFIDENCE.' }
+        return [pscustomobject]@{
+            scores = [pscustomobject]@{ A = [pscustomobject]$scores.A; B = [pscustomobject]$scores.B }
+            dimension_winners = [pscustomobject]$winners
+            overall_winner = $overall
+            confidence = $confidence
+            reason = 'Structured retry omitted free-text reasoning.'
+        }
+    }
+
+    $grounding = @{}
+    $claims = [System.Collections.Generic.List[object]]::new()
+    foreach ($line in $lines) {
+        $parts = @($line -split '\|', 6)
+        if ($parts.Count -eq 3 -and $parts[0] -eq 'GROUNDING' -and $parts[1] -in @('A', 'B') -and $parts[2] -match '^[0-3]$') {
+            $grounding[$parts[1]] = [int]$parts[2]
+        } elseif ($parts.Count -eq 6 -and $parts[0] -eq 'CLAIM' -and $parts[1] -in @('A', 'B') -and $parts[2] -in @('verified', 'unsupported', 'contradicted', 'unresolved') -and $parts[3] -in @('true', 'false')) {
+            $claims.Add([pscustomobject]@{
+                answer = $parts[1]
+                claim = $parts[5]
+                status = $parts[2]
+                evidence = @($parts[4] -split ';' | Where-Object { $_ })
+                material_error = $parts[3] -eq 'true'
+            })
+        }
+    }
+    foreach ($answer in @('A', 'B')) {
+        if (-not $grounding.ContainsKey($answer)) { throw "Evidence line protocol is missing GROUNDING|$answer." }
+        if (-not @($claims | Where-Object answer -eq $answer).Count) { throw "Evidence line protocol has no CLAIM for answer $answer." }
+    }
+    $claimArray = $claims.ToArray()
+    return [pscustomobject]@{
+        claims = $claimArray
+        evidence_grounding = [pscustomobject]@{ A = $grounding.A; B = $grounding.B }
+        material_errors = @($claimArray | Where-Object material_error)
     }
 }
 
@@ -1007,6 +1095,11 @@ function ConvertFrom-JudgeJson {
             $lastError = $_.Exception.Message
         }
     }
+    try {
+        return ConvertFrom-JudgeLineProtocol -Text $trimmed -Pass $Pass
+    } catch {
+        $lastError = "$lastError Line protocol: $($_.Exception.Message)"
+    }
     throw "$Pass judge did not return valid JSON: $lastError"
 }
 
@@ -1015,6 +1108,7 @@ function Invoke-JudgeModelPass {
         [Parameter(Mandatory = $true)] $Context,
         [Parameter(Mandatory = $true)] [string] $JudgmentId,
         [Parameter(Mandatory = $true)] [string] $Prompt,
+        [Parameter(Mandatory = $true)] [string] $RetryPrompt,
         [Parameter(Mandatory = $true)] [string] $WorkspacePath,
         [Parameter(Mandatory = $true)] [string] $WorkspaceHash,
         [Parameter(Mandatory = $true)] [string] $Model,
@@ -1033,12 +1127,16 @@ function Invoke-JudgeModelPass {
         workspace_hash = $WorkspaceHash
     }
     $passRoot = Join-Path $Context.evaluation_root 'judge-pass-runs'
+    $failureRoot = Join-Path $Context.evaluation_root 'judge-pass-failures'
     $passPath = Join-Path $passRoot "$JudgmentId--$Pass.json"
+    $primaryPromptHash = $descriptor.prompt_hash
+    $retryPromptHash = Get-StringHash -Value $RetryPrompt
+    $cachedResponseInvalid = $false
     if ((Test-Path -LiteralPath $passPath -PathType Leaf) -and -not $Force) {
         $existing = Read-EvalJson -Path $passPath
         $validProvenance = $existing.run_id -eq $descriptor.run_id -and
             $existing.model -eq $Model -and
-            $existing.prompt_hash -eq $descriptor.prompt_hash -and
+            $existing.prompt_hash -in @($primaryPromptHash, $retryPromptHash) -and
             $existing.workspace_hash -eq $WorkspaceHash -and
             $existing.execution.status -eq 'complete' -and
             $existing.execution.workspace_unchanged -eq $true
@@ -1052,28 +1150,43 @@ function Invoke-JudgeModelPass {
                     consumption = $existing.consumption
                 }
             } catch {
-                # Preserve the failed response until the replacement call completes.
+                $cachedResponseInvalid = $true
             }
         }
     }
-    $timeoutSeconds = if ($Context.config.PSObject.Properties['timeout_seconds']) { [int]$Context.config.timeout_seconds } else { 900 }
-    $copilotCommand = if ($Context.config.PSObject.Properties['copilot_command']) { [string]$Context.config.copilot_command } else { 'copilot' }
-    $beforeHash = Get-WorkspaceTreeHash -Path $WorkspacePath
-    if ($beforeHash -ne $WorkspaceHash) { throw "Judge workspace changed before '$($descriptor.run_id)'." }
-    $metricsSnapshot = Invoke-CopilotMetricsAdapter -Context $Context -Mode snapshot
-    $processResult = Invoke-EvalProcess -FileName $copilotCommand -Arguments @(Get-CopilotArguments -Context $Context -Descriptor $descriptor) -WorkingDirectory $WorkspacePath -TimeoutSeconds $timeoutSeconds
-    $metrics = Invoke-CopilotMetricsAdapter -Context $Context -Mode collect -SinceId $metricsSnapshot.max_usage_event_id -WorkspacePath $WorkspacePath
-    $afterHash = Get-WorkspaceTreeHash -Path $WorkspacePath
-    $runResult = New-RunResult -Descriptor $descriptor -ProcessResult $processResult -WorkspaceUnchanged ($beforeHash -eq $afterHash) -Metrics $metrics
-    Write-JsonFile -Value $runResult -Path $passPath
-    if ($runResult.execution.status -ne 'complete') { throw "$Pass judge process failed for '$JudgmentId'." }
-    $parsed = ConvertFrom-JudgeJson -Text $runResult.response_text -Pass $Pass
-    return [pscustomobject]@{
-        response = $parsed
-        response_hash = Get-StringHash -Value $runResult.response_text
-        execution = $runResult.execution
-        consumption = $runResult.consumption
+
+    $prompts = if ($cachedResponseInvalid) { @($RetryPrompt) } else { @($Prompt, $RetryPrompt) }
+    $lastError = $null
+    $attempt = 0
+    foreach ($effectivePrompt in @($prompts | Select-Object -Unique)) {
+        $attempt++
+        $descriptor.prompt = $effectivePrompt
+        $descriptor.prompt_hash = Get-StringHash -Value $effectivePrompt
+        $timeoutSeconds = if ($Context.config.PSObject.Properties['timeout_seconds']) { [int]$Context.config.timeout_seconds } else { 900 }
+        $copilotCommand = if ($Context.config.PSObject.Properties['copilot_command']) { [string]$Context.config.copilot_command } else { 'copilot' }
+        $beforeHash = Get-WorkspaceTreeHash -Path $WorkspacePath
+        if ($beforeHash -ne $WorkspaceHash) { throw "Judge workspace changed before '$($descriptor.run_id)'." }
+        $metricsSnapshot = Invoke-CopilotMetricsAdapter -Context $Context -Mode snapshot
+        $processResult = Invoke-EvalProcess -FileName $copilotCommand -Arguments @(Get-CopilotArguments -Context $Context -Descriptor $descriptor) -WorkingDirectory $WorkspacePath -TimeoutSeconds $timeoutSeconds
+        $metrics = Invoke-CopilotMetricsAdapter -Context $Context -Mode collect -SinceId $metricsSnapshot.max_usage_event_id -WorkspacePath $WorkspacePath
+        $afterHash = Get-WorkspaceTreeHash -Path $WorkspacePath
+        $runResult = New-RunResult -Descriptor $descriptor -ProcessResult $processResult -WorkspaceUnchanged ($beforeHash -eq $afterHash) -Metrics $metrics
+        Write-JsonFile -Value $runResult -Path $passPath
+        if ($runResult.execution.status -ne 'complete') { throw "$Pass judge process failed for '$JudgmentId'." }
+        try {
+            $parsed = ConvertFrom-JudgeJson -Text $runResult.response_text -Pass $Pass
+            return [pscustomobject]@{
+                response = $parsed
+                response_hash = Get-StringHash -Value $runResult.response_text
+                execution = $runResult.execution
+                consumption = $runResult.consumption
+            }
+        } catch {
+            $lastError = $_.Exception.Message
+            Write-JsonFile -Value $runResult -Path (Join-Path $failureRoot "$JudgmentId--$Pass--attempt$attempt.json")
+        }
     }
+    throw $lastError
 }
 function Invoke-BcAiKnowledgeEvalCalibration {
     [CmdletBinding()]
@@ -1171,10 +1284,12 @@ function Invoke-BcAiKnowledgeEvalJudging {
     $judgmentRoot = Join-Path $Context.evaluation_root 'judgments'
     $sandboxRoot = Join-Path $Context.evaluation_root 'judge-sandbox'
     $passRoot = Join-Path $Context.evaluation_root 'judge-pass-runs'
+    $failureRoot = Join-Path $Context.evaluation_root 'judge-pass-failures'
     if ($Force) {
         Remove-Item -LiteralPath $judgmentRoot -Recurse -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $sandboxRoot -Recurse -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $passRoot -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $failureRoot -Recurse -Force -ErrorAction SilentlyContinue
     }
     New-Item -ItemType Directory -Path $judgmentRoot -Force | Out-Null
     New-Item -ItemType Directory -Path $sandboxRoot -Force | Out-Null
@@ -1187,9 +1302,8 @@ function Invoke-BcAiKnowledgeEvalJudging {
         $target = Join-Path $judgmentRoot $packFile.Name
         if ((Test-Path -LiteralPath $target) -and -not $Force) { continue }
         try {
-            $contentPass = Invoke-JudgeModelPass -Context $Context -JudgmentId $pack.judgment_id -Prompt $pack.content_prompt -WorkspacePath $sandboxRoot -WorkspaceHash $sandboxHash -Model $judgeModel -Pass content
-            $contentPass = Invoke-JudgeModelPass -Context $Context -JudgmentId $pack.judgment_id -Prompt $pack.content_prompt -WorkspacePath $sandboxRoot -WorkspaceHash $sandboxHash -Model $judgeModel -Pass content -Force:$Force
-            $evidencePass = Invoke-JudgeModelPass -Context $Context -JudgmentId $pack.judgment_id -Prompt $pack.evidence_prompt -WorkspacePath $docsWorkspace.path -WorkspaceHash $docsWorkspace.tree_hash -Model $judgeModel -Pass evidence -Force:$Force
+            $contentPass = Invoke-JudgeModelPass -Context $Context -JudgmentId $pack.judgment_id -Prompt $pack.content_prompt -RetryPrompt $pack.content_retry_prompt -WorkspacePath $sandboxRoot -WorkspaceHash $sandboxHash -Model $judgeModel -Pass content -Force:$Force
+            $evidencePass = Invoke-JudgeModelPass -Context $Context -JudgmentId $pack.judgment_id -Prompt $pack.evidence_prompt -RetryPrompt $pack.evidence_retry_prompt -WorkspacePath $docsWorkspace.path -WorkspaceHash $docsWorkspace.tree_hash -Model $judgeModel -Pass evidence -Force:$Force
             $mapping = Read-EvalJson -Path (Join-Path (Join-Path $Context.evaluation_root 'judge-mappings') $packFile.Name)
             $winner = if ($contentPass.response.PSObject.Properties['overall_winner']) { [string]$contentPass.response.overall_winner } else { 'unsure' }
             if ($winner -notin @('A', 'B', 'tie', 'unsure')) { $winner = 'unsure' }

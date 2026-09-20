@@ -44,72 +44,33 @@ def main() -> int:
         return 2
 
     prompt = argument_value("-p")
-    if "Return JSON only with 0-to-3 scores" in prompt:
+    if "Return exactly these 14 lines" in prompt:
         winner = documented_answer_label(prompt)
         loser = "B" if winner == "A" else "A"
-        scores = {
-            winner: {
-                "correctness": 3,
-                "completeness_actionability": 3,
-                "scope_fit": 3,
-                "uncertainty_safety": 3,
-            },
-            loser: {
-                "correctness": 1,
-                "completeness_actionability": 1,
-                "scope_fit": 2,
-                "uncertainty_safety": 2,
-            },
-        }
-        print(
-            "```json\n"
-            + json.dumps(
-                {
-                    "scores": scores,
-                    "dimension_winners": {
-                        "correctness": winner,
-                        "completeness_actionability": winner,
-                        "scope_fit": winner,
-                        "uncertainty_safety": winner,
-                    },
-                    "overall_winner": winner,
-                    "confidence": "high",
-                    "reason": "The selected answer states the synthetic policy explicitly.",
-                }
-            )
-            + "\n```"
-        )
+        for answer, score in ((winner, 3), (loser, 1)):
+            for dimension in ("correctness", "completeness_actionability", "scope_fit", "uncertainty_safety"):
+                print(f"SCORE|{answer}|{dimension}|{score}")
+        for dimension in ("correctness", "completeness_actionability", "scope_fit", "uncertainty_safety"):
+            print(f"WINNER|{dimension}|{winner}")
+        print(f"OVERALL|{winner}")
+        print("CONFIDENCE|high")
+        return 0
+
+    if "Start with exactly two grounding lines" in prompt:
+        winner = documented_answer_label(prompt)
+        loser = "B" if winner == "A" else "A"
+        print(f"GROUNDING|{winner}|3")
+        print(f"GROUNDING|{loser}|1")
+        print(f"CLAIM|{winner}|verified|false|AGENTS.md;src/ReviewManagement.Codeunit.al|Closed reviews are not reused.")
+        print(f"CLAIM|{loser}|unsupported|false|AGENTS.md|The exact policy is not explicit.")
+        return 0
+
+    if "Return JSON only with 0-to-3 scores" in prompt:
+        print('{"scores": invalid}')
         return 0
 
     if "Verify the critical claims" in prompt:
-        winner = documented_answer_label(prompt)
-        loser = "B" if winner == "A" else "A"
-        print(
-            "```json\n"
-            + json.dumps(
-                {
-                    "claims": [
-                        {
-                            "answer": winner,
-                            "claim": "Closed reviews are not reused.",
-                            "status": "verified",
-                            "evidence": "AGENTS.md and ReviewManagement.Codeunit.al",
-                            "material_error": False,
-                        },
-                        {
-                            "answer": loser,
-                            "claim": "The exact policy is not explicit.",
-                            "status": "unsupported",
-                            "evidence": "The frozen documentation states the policy.",
-                            "material_error": False,
-                        },
-                    ],
-                    "evidence_grounding": {winner: 3, loser: 1},
-                    "material_errors": [],
-                }
-            )
-            + "\n```"
-        )
+        print('{"claims": invalid}')
         return 0
 
     documentation = workspace / "tools/bc-ai-knowledge-eval/examples/sample-app/AGENTS.md"
