@@ -30,22 +30,24 @@ Copy the synthetic examples outside the repository and replace their values:
 ```powershell
 $tool = '.\tools\bc-ai-knowledge-eval\Invoke-BcAiKnowledgeEval.ps1'
 
-& $tool -Mode dry-run -ConfigPath C:\private-evals\evaluation.json
-& $tool -Mode prepare -ConfigPath C:\private-evals\evaluation.json
-& $tool -Mode export-run-pack -ConfigPath C:\private-evals\evaluation.json
+pwsh -NoProfile -File $tool -Mode dry-run -ConfigPath C:\private-evals\evaluation.json
+pwsh -NoProfile -File $tool -Mode prepare -ConfigPath C:\private-evals\evaluation.json
+pwsh -NoProfile -File $tool -Mode export-run-pack -ConfigPath C:\private-evals\evaluation.json
 ```
+
+Invoke the entry point with `pwsh`, even when the current terminal is labeled PowerShell. Windows PowerShell 5.1 is not supported.
 
 For automatic answer generation:
 
 ```powershell
-& $tool -Mode calibrate -ConfigPath C:\private-evals\evaluation.json -ConfirmPaidRuns
-& $tool -Mode run -ConfigPath C:\private-evals\evaluation.json -ConfirmPaidRuns
+pwsh -NoProfile -File $tool -Mode calibrate -ConfigPath C:\private-evals\evaluation.json -ConfirmPaidRuns
+pwsh -NoProfile -File $tool -Mode run -ConfigPath C:\private-evals\evaluation.json -ConfirmPaidRuns
 ```
 
 For a complete automatic flow after calibration:
 
 ```powershell
-& $tool -Mode all -ConfigPath C:\private-evals\evaluation.json -ConfirmPaidRuns
+pwsh -NoProfile -File $tool -Mode all -ConfigPath C:\private-evals\evaluation.json -ConfirmPaidRuns
 ```
 
 ## Modes
