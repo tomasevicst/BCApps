@@ -1,6 +1,6 @@
 # Update BC AL documentation
 
-Refresh existing AL documentation from relevant source and documentation changes. Detection and planning are read-only. Do not edit files before the user approves the update plan.
+Refresh existing AL documentation from relevant source and documentation changes. An explicit `update` request authorizes change detection, focused edits within the resolved documentation scope, validation, and focused validation repairs as one continuous workflow.
 
 ## Preflight
 
@@ -110,24 +110,24 @@ When legacy orientation exists, include one migration action in the plan:
 - Folder or namespace scope: migrate `<physical-owner>/docs/CLAUDE.md` to `<physical-owner>/AGENTS.md`.
 - Preserve useful prose, shorten automatically loaded orientation where needed, move detailed knowledge to approved focused files, and recalculate relative links from the new location.
 - If both files exist, compare and merge valid content into `AGENTS.md`; do not maintain duplicate orientation files.
-- Remove the legacy file only when the approved plan explicitly includes its migration and link validation succeeds.
+- Remove the legacy file only after the user explicitly confirms the migration and link validation succeeds.
 
-Ask the user to approve or revise the plan. Stop until explicit approval is received.
+Present the plan as a progress update, then continue directly to the edits when they remain within the resolved scope and are non-destructive. Stop and ask only when the plan expands scope, removes or moves files, migrates legacy documentation, replaces substantive human-authored content, or leaves the target, owner, or baseline ambiguous.
 
-## Step 4: Apply approved updates
+## Step 4: Apply updates
 
-After approval:
+After presenting the plan and confirming that no stop condition applies:
 
 1. Re-read each target document and changed source file immediately before editing.
-2. Change only sections affected by approved evidence.
+2. Change only sections affected by verified evidence.
 3. Preserve valid human narrative, examples, diagrams, and links.
 4. Add new behavior where the scope expanded.
-5. Remove a claim only when source was removed or contradicted and the plan approved its removal.
+5. Remove a claim only when source was removed or contradicted. Ask first when removing substantive human-authored content.
 6. Update diagrams only when their represented relationships or branches changed.
 7. Update parent docs only when navigation or responsibility summaries changed.
-8. Move namespace documentation only after physical ownership is resolved and the plan explicitly approves the move.
+8. Move namespace documentation only after physical ownership is resolved and the user explicitly confirms the destructive move.
 9. Report ambiguity instead of adding speculative prose or machine-generated TODO comments.
-10. For an approved legacy migration, create or update `AGENTS.md`, validate its links, then remove the old `CLAUDE.md` in the same change.
+10. For a user-confirmed legacy migration, create or update `AGENTS.md`, validate its links, then remove the old `CLAUDE.md` in the same change.
 
 Do not rewrite whole files when a focused section edit is sufficient.
 
@@ -154,7 +154,7 @@ Do not rewrite whole files when a focused section edit is sufficient.
 - Compare repeated creation, suppression, posting, and ledger-effect claims across affected parent, child, and focused files; resolve contradictions against source and tests.
 - Remove or generalize volatile implementation counts unless the number is a product contract.
 - Check applicable Markdown instructions and whitespace.
-- Review the final diff and confirm only approved documentation files changed.
+- Review the final diff and confirm only files authorized by the resolved scope and update plan changed.
 
 After correcting any validation issue, rerun the validator before reporting completion.
 

@@ -1,6 +1,6 @@
 # Initialize BC AL documentation
 
-Bootstrap human-first documentation for one AL app, folder, or exact namespace. Discovery and planning are read-only. Do not create or edit files before the user approves the documentation map.
+Bootstrap human-first documentation for one AL app, folder, or exact namespace. An explicit `init` request authorizes discovery, documentation generation within the resolved scope, validation, and focused validation repairs as one continuous workflow.
 
 ## Preflight
 
@@ -138,26 +138,26 @@ Use this structure:
 - ...
 ```
 
-For every proposed file, state why it earns its existence. `AGENTS.md` is required for an approved scope. Every focused file is conditional.
+For every proposed file, state why it earns its existence. `AGENTS.md` is required for the resolved scope. Every focused file is conditional.
 
-The boundary coverage table must include every immediate AL-owning child. For a large multi-area scope, proposing zero child boundaries requires representative-task evidence and explicit user approval of that shallow hierarchy. A low numeric score cannot override a supported semantic-complexity signal without a reasoned `link` decision.
+The boundary coverage table must include every immediate AL-owning child. For a large multi-area scope, do not proceed with zero child boundaries unless representative-task evidence supports that shallow hierarchy. Otherwise add the justified child boundaries. A low numeric score cannot override a supported semantic-complexity signal without a reasoned `link` decision.
 
 For namespace scope, show the selected app root, dominant physical owner, supporting locations inside that app, and exact file counts. Ownership ambiguity must already be resolved during preflight.
 
-## Phase 3: Approval gate
+## Phase 3: Execution checkpoint
 
-Present the map and ask the user to approve or revise it. Stop until explicit approval is received.
+Present the map as a progress update, then continue directly to generation when it remains within the resolved scope and uses non-destructive file operations.
 
-Approval authorizes the proposed file operations and observed-behavior content. It does not turn unsupported rationale into approved intent. Keep unsupported intent unresolved.
+Stop and ask before generation only when the map reveals ambiguous ownership, expands beyond the requested scope, removes or moves files, migrates legacy documentation, or replaces substantive human-authored content. The invocation authorizes observed-behavior documentation; it does not turn unsupported rationale into approved intent. Keep unsupported intent unresolved.
 
 ## Phase 4: Generate documentation
 
-After approval:
+After presenting the map and confirming that no stop condition applies:
 
 1. Re-read each existing target file in full immediately before editing.
 2. Generate non-overlapping scopes in parallel only when agents cannot edit the same files.
 3. Preserve valid human prose and existing links.
-4. Use the approved physical locations:
+4. Use the mapped physical locations:
    - App orientation: `<app-root>/AGENTS.md`
    - App focused files: `<app-root>/docs/<category>.md`
    - Folder or namespace orientation: `<physical-owner>/AGENTS.md`
@@ -187,12 +187,12 @@ Then complete the semantic validation:
 - Verify every named AL filename uses its exact physical name and is a resolving Markdown link, not a bare code span.
 - Verify each focused file matches evidence and has one clear purpose.
 - Check that parent, child, folder, and namespace scopes do not duplicate detailed content.
-- Verify every immediate AL-owning child appears in the approved boundary coverage ledger.
+- Verify every immediate AL-owning child appears in the documentation map's boundary coverage ledger.
 - Verify every immediate AL-owning child is visibly accounted for in the owning `AGENTS.md` as documented, linked to its owning documentation, or intentionally omitted with a reason.
 - Verify each accepted child boundary has an `AGENTS.md` and each parent links to accepted children.
 - For large multi-area scopes, verify representative tasks receive sufficient context from the nearest `AGENTS.md`; fail validation when zero child boundaries remain unsupported.
 - Verify semantically complex low-count modules were documented or deliberately linked, not omitted solely by score.
-- Confirm namespace docs live under the approved physical owner and link supporting locations.
+- Confirm namespace docs live under the resolved physical owner and link supporting locations.
 - Check that selected tests are explained by scenario and no execution claim was invented.
 - Verify every selected test scenario and Test Library helper has a direct, resolving source link.
 - Verify app dependency wording distinguishes an empty `dependencies` array from the application and platform targets.
@@ -204,7 +204,7 @@ Then complete the semantic validation:
 - Search maintained docs for volatile exact or approximate implementation counts and replace them with stable qualitative descriptions.
 - Search for object, field, procedure, event, and test inventories that should be prose instead.
 - Check applicable Markdown instructions and whitespace.
-- Review the final diff and confirm only approved documentation files changed.
+- Review the final diff and confirm only files authorized by the resolved scope and documentation map changed.
 
 After fixing any issue, rerun the validator. A partial or sampled link check does not satisfy this gate.
 

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Scoring identifies candidate documentation boundaries and suggests which document types may provide value. It does not authorize file creation. Every proposed file must appear in an approved documentation map or update plan.
+Scoring identifies candidate documentation boundaries and suggests which document types may provide value. Every generated file must appear in the documentation map or update plan shown before writing.
 
 ## Object detection
 

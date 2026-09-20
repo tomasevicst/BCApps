@@ -144,7 +144,7 @@ The presence of test source proves only that the test exists. State that a test 
 
 ## File roles
 
-`AGENTS.md` is the concise orientation and instruction entry point for every approved documentation scope. Copilot CLI discovers it from the physical code directory, so keep it beside the AL files whose subtree it governs. When nested files exist, the nearest `AGENTS.md` takes precedence, so each local file must provide enough context for its subtree and link to broader documentation without copying detailed knowledge. Additional files are conditional.
+`AGENTS.md` is the concise orientation and instruction entry point for every resolved documentation scope. Copilot CLI discovers it from the physical code directory, so keep it beside the AL files whose subtree it governs. When nested files exist, the nearest `AGENTS.md` takes precedence, so each local file must provide enough context for its subtree and link to broader documentation without copying detailed knowledge. Additional files are conditional.
 
 | File | Create when it adds substantial knowledge |
 |------|-------------------------------------------|
@@ -190,7 +190,7 @@ Documentation must live beside a real physical code owner:
 - Do not place `AGENTS.md` inside `docs`; that would scope automatic discovery to documentation files instead of the AL source subtree.
 - Never create a source folder from a namespace name.
 
-An existing `CLAUDE.md` is migration input. Preserve useful content, move orientation to the correct `AGENTS.md`, repair relative links, and remove the legacy file only through an approved update plan. Do not maintain both files for the same scope.
+An existing `CLAUDE.md` is migration input. Preserve useful content, move orientation to the correct `AGENTS.md`, repair relative links, and remove the legacy file only after the user confirms the destructive migration. Do not maintain both files for the same scope.
 
 When scopes overlap, assign each detailed subject to one owner. Other scopes summarize and link. Supporting files outside the primary owner are linked as supporting evidence and do not create a duplicate namespace guide.
 
@@ -201,7 +201,7 @@ Existing human documentation is authoritative prose unless evidence shows it is 
 - Read the complete affected document first.
 - Change only sections invalidated or expanded by evidence.
 - Preserve voice, examples, and reviewed explanations that remain valid.
-- Remove content only when the approved plan identifies the source deletion or contradiction.
+- Remove content only when the update plan identifies the source deletion or contradiction. Ask first when removing substantive human-authored content.
 - Report uncertainty rather than inserting speculative content.
 
 ## Validation checklist
