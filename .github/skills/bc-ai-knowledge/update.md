@@ -133,11 +133,14 @@ Do not rewrite whole files when a focused section edit is sufficient.
 
 ## Step 5: Validate
 
+- Run the dependency-free [documentation validator](./scripts/validate_docs.py) against the physical owner and require a successful exit. Pass `--source-root` when source is not under the default location. Resolve every warning or verify that the count is a product contract. If Python is unavailable, perform and report equivalent checks manually.
 - Verify every relative link and referenced source path.
+- Verify every named AL filename uses its exact physical name and is a resolving Markdown link, not a bare code span.
 - Verify changed claims against the post-change AL source.
 - Verify removed claims no longer have valid evidence.
 - Confirm parent and child scopes remain non-overlapping.
 - Confirm every immediate AL-owning child has a current `document`, `link`, or `omit` decision.
+- Confirm every immediate AL-owning child is visibly accounted for in the owning `AGENTS.md`, including linked and intentionally omitted children.
 - Confirm representative tasks in complex subtrees load sufficient context from the nearest `AGENTS.md`.
 - Confirm semantically complex low-count modules are documented or deliberately linked rather than omitted by score alone.
 - Confirm namespace ownership and supporting-location links remain accurate.
@@ -147,9 +150,13 @@ Do not rewrite whole files when a focused section edit is sufficient.
 - Confirm interface-backed enum guidance still matches `Extensible` and `Implementation` declarations.
 - Confirm policy ownership still follows the implementation call path and does not assign shared policy to adapters.
 - Confirm transaction-semantics claims still have explicit code, documented API, or runtime evidence.
+- Compare declaration guards, call-site guards, and obsolete metadata independently for every changed preprocessor or lifecycle claim. Preserve exact cleanup symbols and leave unsupported removal timing unresolved.
+- Compare repeated creation, suppression, posting, and ledger-effect claims across affected parent, child, and focused files; resolve contradictions against source and tests.
 - Remove or generalize volatile implementation counts unless the number is a product contract.
 - Check applicable Markdown instructions and whitespace.
 - Review the final diff and confirm only approved documentation files changed.
+
+After correcting any validation issue, rerun the validator before reporting completion.
 
 ## Completion report
 

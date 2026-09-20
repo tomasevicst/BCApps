@@ -33,6 +33,7 @@ Use parallel read-only investigations when available.
 - Read parent and child entry points that establish navigation or ownership.
 - Find non-standard, misplaced, duplicate, and orphaned documentation.
 - Record linked source and test paths for validation.
+- Run the dependency-free [documentation validator](./scripts/validate_docs.py) against the physical owner. Treat its errors as concrete findings and review every volatile-count warning. If Python is unavailable, perform the equivalent checks manually.
 
 ### Content quality
 
@@ -43,6 +44,8 @@ Use parallel read-only investigations when available.
 - For interface-backed enums described as extension surfaces, verify the documented registration mechanism against `Extensible` and `Implementation` declarations.
 - Trace reuse, duplicate detection, fallback, ordering, and other policy claims to the procedure that makes the decision. Flag claims attributed only to adapters or callers when policy lives in a shared service.
 - Require explicit evidence for commit, rollback, persistence-after-failure, and independent-transaction claims. Loops, call order, or earlier successful operations are not proof.
+- Compare declaration guards, call-site guards, and obsolete metadata independently for preprocessor and lifecycle claims. Flag changed cleanup symbols and inferred removal schedules.
+- Compare repeated creation, suppression, posting, and ledger-effect claims across parent, child, and focused files. Treat incompatible statements without explicit differing conditions as contradictions.
 - Separate supported intent, observed behavior, proposals, and unresolved questions.
 - Find important claims without usable evidence links.
 

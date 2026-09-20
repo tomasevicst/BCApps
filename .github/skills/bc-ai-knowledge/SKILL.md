@@ -95,3 +95,5 @@ Every mode reports:
 - Proposed or assessed files and why each earns its role.
 - Ambiguities, unsupported intent, and relevant test gaps.
 - Validation performed and any checks that could not run.
+
+Init and update must run the dependency-free [documentation validator](./scripts/validate_docs.py) before reporting completion. Audit uses the same validator read-only. A generated set is not valid merely because its links resolve: each workflow must also complete the semantic consistency checks in its validation phase.

@@ -170,13 +170,25 @@ After approval:
 
 ## Phase 5: Validate
 
-Validate the generated set before reporting completion:
+Validation is a hard completion gate. Do not report success while a deterministic error, unresolved warning, or semantic contradiction remains.
+
+First run the dependency-free [documentation validator](./scripts/validate_docs.py) against the physical owner:
+
+```powershell
+python <skill-path>/scripts/validate_docs.py --scope <physical-owner>
+```
+
+Pass `--source-root <source-root>` when the AL source root is not `<physical-owner>/src` or the physical owner itself. The command must exit successfully. Resolve every warning by removing or generalizing the volatile count, or by verifying and reporting that it is a product contract. If Python is unavailable, perform and report the same link, bare-filename, boundary, and volatile-count checks manually.
+
+Then complete the semantic validation:
 
 - Read from both the parent entry point and local `AGENTS.md` as a developer new to the area.
 - Verify every relative link and referenced source path.
+- Verify every named AL filename uses its exact physical name and is a resolving Markdown link, not a bare code span.
 - Verify each focused file matches evidence and has one clear purpose.
 - Check that parent, child, folder, and namespace scopes do not duplicate detailed content.
 - Verify every immediate AL-owning child appears in the approved boundary coverage ledger.
+- Verify every immediate AL-owning child is visibly accounted for in the owning `AGENTS.md` as documented, linked to its owning documentation, or intentionally omitted with a reason.
 - Verify each accepted child boundary has an `AGENTS.md` and each parent links to accepted children.
 - For large multi-area scopes, verify representative tasks receive sufficient context from the nearest `AGENTS.md`; fail validation when zero child boundaries remain unsupported.
 - Verify semantically complex low-count modules were documented or deliberately linked, not omitted solely by score.
@@ -187,10 +199,14 @@ Validate the generated set before reporting completion:
 - Verify interface-backed enum guidance states the source-proven registration mechanism and does not leave a resolvable mechanism unresolved.
 - Verify every policy claim is attributed to the component that implements its deciding branch, not merely to a caller of shared behavior.
 - Verify every transaction-semantics claim has explicit code, documented API, or runtime evidence; otherwise remove the claim or mark it unresolved.
+- For preprocessor and obsoletion claims, compare the declaration guard, call-site guards, and obsolete metadata independently; preserve exact cleanup symbols and do not infer removal timing.
+- Compare repeated creation, suppression, posting, and ledger-effect claims across the generated files. Resolve every contradiction against the deciding source and selected tests.
 - Search maintained docs for volatile exact or approximate implementation counts and replace them with stable qualitative descriptions.
 - Search for object, field, procedure, event, and test inventories that should be prose instead.
 - Check applicable Markdown instructions and whitespace.
 - Review the final diff and confirm only approved documentation files changed.
+
+After fixing any issue, rerun the validator. A partial or sampled link check does not satisfy this gate.
 
 ## Completion report
 

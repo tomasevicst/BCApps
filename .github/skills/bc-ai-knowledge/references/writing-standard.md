@@ -117,6 +117,29 @@ For each selected scenario, explain:
 
 Link every selected scenario directly to its exact test source file. Link referenced test-library helpers to their exact source files as well. A backticked filename or procedure name without a Markdown link is not sufficient evidence.
 
+Use the exact physical filename in link labels. Do not turn an AL object caption into a guessed filename. When a filename is worth naming in maintained documentation, make it a resolving Markdown link rather than an unlinked code span.
+
+## Conditional compilation and lifecycle claims
+
+Treat preprocessor and obsoletion facts as separate evidence:
+
+- Read the declaration file's outer preprocessor guard.
+- Read the guards around fields, variables, subscribers, and call sites that reference it.
+- Record `ObsoleteState`, `ObsoleteTag`, and `ObsoleteReason` independently.
+- Preserve every cleanup symbol exactly. Do not replace `CLEAN28` with `CLEAN29` because nearby callers use a later symbol.
+- Do not infer when a cleanup ships, why two guards differ, or which release removes code unless an authoritative source establishes it. Mark unresolved timing or rationale explicitly when it matters.
+
+## Cross-document consistency
+
+Before publication, compare repeated claims across parent orientation, child orientation, and focused files. Build a small internal claim ledger for behavior that appears in more than one place, especially:
+
+- Whether a flow creates or suppresses item, capacity, warehouse, value, or custom ledger entries.
+- Last-operation versus non-last-operation behavior.
+- Feature gates, fallbacks, ordering, and ownership.
+- Commit, rollback, preview, persistence, and cleanup behavior.
+
+Resolve contradictions against the deciding source and selected tests. Keep both statements only when their different conditions are explicit.
+
 The presence of test source proves only that the test exists. State that a test passed only when recorded execution proves it.
 
 ## File roles
@@ -194,6 +217,7 @@ Existing human documentation is authoritative prose unless evidence shows it is 
 - Volatile discovery counts do not appear as maintained knowledge unless the number is a product contract.
 - Parent and child scopes do not duplicate detailed content.
 - Every immediate AL-owning child has a documented `document`, `link`, or `omit` decision.
+- For app and folder scopes, every immediate AL-owning child is visibly accounted for in the owning `AGENTS.md`, not only in the temporary documentation map. Linked children identify their owning documentation; omitted children state why no local document is needed.
 - Large multi-area scopes with no child boundaries include representative-task evidence that parent context is sufficient.
 - Semantically complex low-count modules are not omitted solely because their numeric score is low.
 - Namespace documentation has a real physical owner.
