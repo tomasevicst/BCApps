@@ -686,7 +686,7 @@ function New-BcAiKnowledgeEvalWorkspaces {
         }
     }
     if ($Force) {
-        foreach ($path in @($workspaceRoot, $manifestRoot, (Join-Path $evaluationRoot 'run-packs'), (Join-Path $evaluationRoot 'runs'), (Join-Path $evaluationRoot 'judge-packs'), (Join-Path $evaluationRoot 'judgments'), (Join-Path $evaluationRoot 'reports'), (Join-Path $evaluationRoot 'calibration'))) {
+        foreach ($path in @($workspaceRoot, $manifestRoot, (Join-Path $evaluationRoot 'run-packs'), (Join-Path $evaluationRoot 'runs'), (Join-Path $evaluationRoot 'judge-packs'), (Join-Path $evaluationRoot 'judge-pass-runs'), (Join-Path $evaluationRoot 'judgments'), (Join-Path $evaluationRoot 'reports'), (Join-Path $evaluationRoot 'calibration'))) {
             Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue
         }
         Remove-Item -LiteralPath $evaluationManifestPath -Force -ErrorAction SilentlyContinue
@@ -1018,7 +1018,8 @@ function Invoke-JudgeModelPass {
         [Parameter(Mandatory = $true)] [string] $WorkspacePath,
         [Parameter(Mandatory = $true)] [string] $WorkspaceHash,
         [Parameter(Mandatory = $true)] [string] $Model,
-        [Parameter(Mandatory = $true)] [string] $Pass
+        [Parameter(Mandatory = $true)] [string] $Pass,
+        [switch] $Force
     )
 
     $descriptor = [pscustomobject]@{
@@ -1031,6 +1032,30 @@ function Invoke-JudgeModelPass {
         workspace_path = $WorkspacePath
         workspace_hash = $WorkspaceHash
     }
+    $passRoot = Join-Path $Context.evaluation_root 'judge-pass-runs'
+    $passPath = Join-Path $passRoot "$JudgmentId--$Pass.json"
+    if ((Test-Path -LiteralPath $passPath -PathType Leaf) -and -not $Force) {
+        $existing = Read-EvalJson -Path $passPath
+        $validProvenance = $existing.run_id -eq $descriptor.run_id -and
+            $existing.model -eq $Model -and
+            $existing.prompt_hash -eq $descriptor.prompt_hash -and
+            $existing.workspace_hash -eq $WorkspaceHash -and
+            $existing.execution.status -eq 'complete' -and
+            $existing.execution.workspace_unchanged -eq $true
+        if ($validProvenance) {
+            try {
+                $parsed = ConvertFrom-JudgeJson -Text $existing.response_text -Pass $Pass
+                return [pscustomobject]@{
+                    response = $parsed
+                    response_hash = Get-StringHash -Value $existing.response_text
+                    execution = $existing.execution
+                    consumption = $existing.consumption
+                }
+            } catch {
+                # Preserve the failed response until the replacement call completes.
+            }
+        }
+    }
     $timeoutSeconds = if ($Context.config.PSObject.Properties['timeout_seconds']) { [int]$Context.config.timeout_seconds } else { 900 }
     $copilotCommand = if ($Context.config.PSObject.Properties['copilot_command']) { [string]$Context.config.copilot_command } else { 'copilot' }
     $beforeHash = Get-WorkspaceTreeHash -Path $WorkspacePath
@@ -1040,6 +1065,7 @@ function Invoke-JudgeModelPass {
     $metrics = Invoke-CopilotMetricsAdapter -Context $Context -Mode collect -SinceId $metricsSnapshot.max_usage_event_id -WorkspacePath $WorkspacePath
     $afterHash = Get-WorkspaceTreeHash -Path $WorkspacePath
     $runResult = New-RunResult -Descriptor $descriptor -ProcessResult $processResult -WorkspaceUnchanged ($beforeHash -eq $afterHash) -Metrics $metrics
+    Write-JsonFile -Value $runResult -Path $passPath
     if ($runResult.execution.status -ne 'complete') { throw "$Pass judge process failed for '$JudgmentId'." }
     $parsed = ConvertFrom-JudgeJson -Text $runResult.response_text -Pass $Pass
     return [pscustomobject]@{
@@ -1144,9 +1170,11 @@ function Invoke-BcAiKnowledgeEvalJudging {
     $judgeModel = Get-JudgeModel -Context $Context
     $judgmentRoot = Join-Path $Context.evaluation_root 'judgments'
     $sandboxRoot = Join-Path $Context.evaluation_root 'judge-sandbox'
+    $passRoot = Join-Path $Context.evaluation_root 'judge-pass-runs'
     if ($Force) {
         Remove-Item -LiteralPath $judgmentRoot -Recurse -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $sandboxRoot -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $passRoot -Recurse -Force -ErrorAction SilentlyContinue
     }
     New-Item -ItemType Directory -Path $judgmentRoot -Force | Out-Null
     New-Item -ItemType Directory -Path $sandboxRoot -Force | Out-Null
@@ -1160,7 +1188,8 @@ function Invoke-BcAiKnowledgeEvalJudging {
         if ((Test-Path -LiteralPath $target) -and -not $Force) { continue }
         try {
             $contentPass = Invoke-JudgeModelPass -Context $Context -JudgmentId $pack.judgment_id -Prompt $pack.content_prompt -WorkspacePath $sandboxRoot -WorkspaceHash $sandboxHash -Model $judgeModel -Pass content
-            $evidencePass = Invoke-JudgeModelPass -Context $Context -JudgmentId $pack.judgment_id -Prompt $pack.evidence_prompt -WorkspacePath $docsWorkspace.path -WorkspaceHash $docsWorkspace.tree_hash -Model $judgeModel -Pass evidence
+            $contentPass = Invoke-JudgeModelPass -Context $Context -JudgmentId $pack.judgment_id -Prompt $pack.content_prompt -WorkspacePath $sandboxRoot -WorkspaceHash $sandboxHash -Model $judgeModel -Pass content -Force:$Force
+            $evidencePass = Invoke-JudgeModelPass -Context $Context -JudgmentId $pack.judgment_id -Prompt $pack.evidence_prompt -WorkspacePath $docsWorkspace.path -WorkspaceHash $docsWorkspace.tree_hash -Model $judgeModel -Pass evidence -Force:$Force
             $mapping = Read-EvalJson -Path (Join-Path (Join-Path $Context.evaluation_root 'judge-mappings') $packFile.Name)
             $winner = if ($contentPass.response.PSObject.Properties['overall_winner']) { [string]$contentPass.response.overall_winner } else { 'unsure' }
             if ($winner -notin @('A', 'B', 'tie', 'unsure')) { $winner = 'unsure' }

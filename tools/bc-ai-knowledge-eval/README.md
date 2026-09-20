@@ -98,7 +98,10 @@ Automatic answer runs start a fresh Copilot process for each question, arm, and 
 |-- run-packs/
 |-- runs/
 |-- judge-packs/
+|-- judge-pass-runs/
 |-- judgments/
+
+Automatic judging caches valid content and evidence passes independently under `judge-pass-runs/`. If one pass returns malformed JSON, rerun `judge` without `-Force`; valid passes and complete judgments are reused while only missing or invalid work is retried.
 `-- reports/
 ```
 
