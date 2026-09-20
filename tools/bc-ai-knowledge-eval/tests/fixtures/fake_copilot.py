@@ -32,6 +32,11 @@ def documented_answer_label(prompt: str) -> str:
 
 
 def main() -> int:
+    required_arguments = {"--silent", "--no-color", "--no-ask-user"}
+    if not required_arguments.issubset(sys.argv) or argument_value("--stream") != "off":
+        print("Fake Copilot requires script-safe output arguments.", file=sys.stderr)
+        return 2
+
     try:
         workspace = Path(sys.argv[sys.argv.index("-C") + 1])
     except (ValueError, IndexError):
@@ -57,7 +62,8 @@ def main() -> int:
             },
         }
         print(
-            json.dumps(
+            "```json\n"
+            + json.dumps(
                 {
                     "scores": scores,
                     "dimension_winners": {
@@ -71,6 +77,7 @@ def main() -> int:
                     "reason": "The selected answer states the synthetic policy explicitly.",
                 }
             )
+            + "\n```"
         )
         return 0
 
@@ -78,7 +85,8 @@ def main() -> int:
         winner = documented_answer_label(prompt)
         loser = "B" if winner == "A" else "A"
         print(
-            json.dumps(
+            "```json\n"
+            + json.dumps(
                 {
                     "claims": [
                         {
@@ -100,6 +108,7 @@ def main() -> int:
                     "material_errors": [],
                 }
             )
+            + "\n```"
         )
         return 0
 

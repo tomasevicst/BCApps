@@ -42,7 +42,11 @@ For automatic answer generation:
 ```powershell
 pwsh -NoProfile -File $tool -Mode calibrate -ConfigPath C:\private-evals\evaluation.json -ConfirmPaidRuns
 pwsh -NoProfile -File $tool -Mode run -ConfigPath C:\private-evals\evaluation.json -ConfirmPaidRuns
+pwsh -NoProfile -File $tool -Mode judge -ConfigPath C:\private-evals\evaluation.json -ConfirmPaidRuns
+pwsh -NoProfile -File $tool -Mode report -ConfigPath C:\private-evals\evaluation.json
 ```
+
+Run these stages one at a time and continue only after the previous stage reports success. If `judge` reports any failure, stop immediately: do not run `report`, do not rerun with `-Force`, and do not delete completed answer artifacts. Diagnose and fix the judge invocation or output-parsing issue first, then rerun `judge` so resumable valid artifacts are preserved and paid calls are not repeated unnecessarily.
 
 For a complete automatic flow after calibration:
 

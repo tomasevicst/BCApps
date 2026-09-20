@@ -405,6 +405,8 @@ function Invoke-EvalProcess {
     $startInfo.UseShellExecute = $false
     $startInfo.RedirectStandardOutput = $true
     $startInfo.RedirectStandardError = $true
+    $startInfo.StandardOutputEncoding = [System.Text.UTF8Encoding]::new($false)
+    $startInfo.StandardErrorEncoding = [System.Text.UTF8Encoding]::new($false)
     $startInfo.CreateNoWindow = $true
     foreach ($argument in $Arguments) { [void]$startInfo.ArgumentList.Add($argument) }
 
@@ -488,7 +490,7 @@ function Get-CopilotArguments {
             $arguments.Add($expanded)
         }
     }
-    foreach ($argument in @('-p', $Descriptor.prompt, '--model', $Descriptor.arm.model, '-C', $Descriptor.workspace_path, '--output-format', 'text')) {
+    foreach ($argument in @('--silent', '--stream', 'off', '--no-color', '--no-ask-user', '-p', $Descriptor.prompt, '--model', $Descriptor.arm.model, '-C', $Descriptor.workspace_path, '--output-format', 'text')) {
         $arguments.Add([string]$argument)
     }
     $availableTools = if ($Context.config.PSObject.Properties['available_tools']) { @($Context.config.available_tools) } else { @('view', 'grep', 'glob') }
@@ -984,11 +986,28 @@ function ConvertFrom-JudgeJson {
     )
 
     if ([string]::IsNullOrWhiteSpace($Text)) { throw "$Pass judge returned an empty response." }
-    try {
-        return $Text | ConvertFrom-Json -Depth 100
-    } catch {
-        throw "$Pass judge did not return valid JSON: $($_.Exception.Message)"
+    $trimmed = $Text.Trim().TrimStart([char]0xFEFF)
+    $candidates = [System.Collections.Generic.List[string]]::new()
+    $candidates.Add($trimmed)
+
+    $fenced = [regex]::Match($trimmed, '(?s)```(?:json)?\s*(\{.*?\})\s*```')
+    if ($fenced.Success) { $candidates.Add($fenced.Groups[1].Value) }
+
+    $firstBrace = $trimmed.IndexOf('{')
+    $lastBrace = $trimmed.LastIndexOf('}')
+    if ($firstBrace -ge 0 -and $lastBrace -gt $firstBrace) {
+        $candidates.Add($trimmed.Substring($firstBrace, $lastBrace - $firstBrace + 1))
     }
+
+    $lastError = $null
+    foreach ($candidate in @($candidates | Select-Object -Unique)) {
+        try {
+            return $candidate | ConvertFrom-Json -Depth 100
+        } catch {
+            $lastError = $_.Exception.Message
+        }
+    }
+    throw "$Pass judge did not return valid JSON: $lastError"
 }
 
 function Invoke-JudgeModelPass {
