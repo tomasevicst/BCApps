@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://microsoft.github.io/BCApps/bc-ai-knowledge-eval/report.schema.json",
+  "title": "BC AI knowledge evaluation report",
+  "type": "object",
+  "required": ["schema_version", "evaluation_id", "report_type", "generated_at", "outcome"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "evaluation_id": { "type": "string" },
+    "question_id": { "type": ["string", "null"] },
+    "report_type": { "enum": ["question", "aggregate", "cross-app"] },
+    "generated_at": { "type": "string" },
+    "outcome": { "enum": ["docs_win", "code_win", "tie", "inconclusive", "mixed"] },
+    "context": {
+      "type": "object",
+      "required": ["profile", "adequacy", "bounded_case_study"],
+      "properties": {
+        "profile": { "enum": ["app-local", "dependency-source", "full-repository"] },
+        "adequacy": { "enum": ["sufficient", "partial", "unknown"] },
+        "bounded_case_study": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "quality": { "type": "object" },
+    "consumption": { "type": "object" },
+    "feedback": { "type": "array" }
+  },
+  "additionalProperties": true
+}

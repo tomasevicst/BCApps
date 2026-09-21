@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://microsoft.github.io/BCApps/bc-ai-knowledge-eval/docs-manifest.schema.json",
+  "title": "BC AI knowledge documentation intervention",
+  "type": "object",
+  "required": ["schema_version", "files"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "description": { "type": ["string", "null"] },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "\\.md$" }
+    }
+  },
+  "additionalProperties": false
+}

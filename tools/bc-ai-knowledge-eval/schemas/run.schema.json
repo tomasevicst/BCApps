@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://microsoft.github.io/BCApps/bc-ai-knowledge-eval/run.schema.json",
+  "title": "BC AI knowledge evaluation answer run",
+  "type": "object",
+  "required": ["schema_version", "run_id", "question_id", "arm", "model", "prompt_hash", "workspace_hash", "generated_by", "capture_method", "execution"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "run_id": { "type": "string" },
+    "question_id": { "type": "string" },
+    "arm": { "enum": ["C0", "C1", "E0", "E1"] },
+    "model": { "type": "string" },
+    "prompt_hash": { "type": "string" },
+    "workspace_hash": { "type": "string" },
+    "generated_by": { "enum": ["copilot_cli", "manual", "external_llm", "human"] },
+    "capture_method": { "type": "string" },
+    "response_text": { "type": ["string", "null"] },
+    "execution": {
+      "type": "object",
+      "required": ["status", "exit_code", "wall_time_seconds"],
+      "properties": {
+        "status": { "enum": ["pending", "complete", "failed", "invalid"] },
+        "exit_code": { "type": ["integer", "null"] },
+        "wall_time_seconds": { "type": ["number", "null"] },
+        "workspace_unchanged": { "type": ["boolean", "null"] }
+      }
+    },
+    "consumption": { "type": "object" }
+  },
+  "additionalProperties": true
+}

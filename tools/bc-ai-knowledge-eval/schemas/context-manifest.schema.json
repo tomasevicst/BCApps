@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://microsoft.github.io/BCApps/bc-ai-knowledge-eval/context-manifest.schema.json",
+  "title": "BC AI knowledge evaluation context manifest",
+  "type": "object",
+  "required": ["schema_version", "context_profile", "target_paths", "dependency_paths", "shared_documentation_policy", "context_adequacy"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "context_profile": { "enum": ["app-local", "dependency-source", "full-repository"] },
+    "target_paths": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/contextPath" }
+    },
+    "dependency_paths": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/contextPath" }
+    },
+    "exclusions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/exclusion" },
+      "default": []
+    },
+    "shared_documentation_policy": { "enum": ["exclude", "include-and-disclose"] },
+    "context_adequacy": { "enum": ["sufficient", "partial", "unknown"] },
+    "notes": { "type": ["string", "null"] }
+  },
+  "$defs": {
+    "contextPath": {
+      "type": "object",
+      "required": ["path", "context_kind", "owner", "reason"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "context_kind": { "enum": ["implementation-source", "test-source", "symbol-metadata", "shared-documentation"] },
+        "owner": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidence": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true,
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    },
+    "exclusion": {
+      "type": "object",
+      "required": ["path", "reason"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

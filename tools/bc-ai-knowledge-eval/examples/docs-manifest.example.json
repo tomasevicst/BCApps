@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0",
+  "description": "Synthetic example. Replace with generated Markdown paths for the selected app.",
+  "files": [
+    "tools/bc-ai-knowledge-eval/examples/sample-app/AGENTS.md"
+  ]
+}

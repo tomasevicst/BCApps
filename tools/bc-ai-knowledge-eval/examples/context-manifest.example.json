@@ -1,0 +1,31 @@
+{
+  "schema_version": "1.0",
+  "context_profile": "dependency-source",
+  "target_paths": [
+    {
+      "path": "tools/bc-ai-knowledge-eval/examples/sample-app",
+      "context_kind": "implementation-source",
+      "owner": "Sample App",
+      "reason": "Target app under evaluation.",
+      "evidence": ["SAMPLE-001"]
+    }
+  ],
+  "dependency_paths": [
+    {
+      "path": "tools/bc-ai-knowledge-eval/examples/sample-dependency",
+      "context_kind": "implementation-source",
+      "owner": "Sample Dependency",
+      "reason": "The target delegates its reuse policy to this synthetic dependency.",
+      "evidence": ["SAMPLE-001"]
+    }
+  ],
+  "exclusions": [
+    {
+      "path": "tools/bc-ai-knowledge-eval/examples",
+      "reason": "Other synthetic examples are not needed for this question."
+    }
+  ],
+  "shared_documentation_policy": "exclude",
+  "context_adequacy": "sufficient",
+  "notes": "Synthetic dependency-source example."
+}
