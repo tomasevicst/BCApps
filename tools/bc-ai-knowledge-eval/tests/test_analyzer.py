@@ -79,5 +79,28 @@ class ConsumptionTests(unittest.TestCase):
         self.assertEqual(-30.0, result["input_tokens"]["delta"])
 
 
+class ContextTests(unittest.TestCase):
+    def test_legacy_manifest_is_bounded_app_local(self) -> None:
+        result = ANALYZER.context_summary({})
+        self.assertEqual("app-local", result["profile"])
+        self.assertEqual("unknown", result["adequacy"])
+        self.assertTrue(result["bounded_case_study"])
+
+    def test_dependency_source_manifest_is_not_bounded(self) -> None:
+        result = ANALYZER.context_summary(
+            {
+                "context": {
+                    "profile": "dependency-source",
+                    "adequacy": "sufficient",
+                    "dependency_paths": [{"path": "dependency"}],
+                }
+            }
+        )
+        self.assertEqual("dependency-source", result["profile"])
+        self.assertEqual("sufficient", result["adequacy"])
+        self.assertFalse(result["bounded_case_study"])
+        self.assertEqual([{"path": "dependency"}], result["dependency_paths"])
+
+
 if __name__ == "__main__":
     unittest.main()

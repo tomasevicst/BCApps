@@ -11,6 +11,16 @@
     "report_type": { "enum": ["question", "aggregate", "cross-app"] },
     "generated_at": { "type": "string" },
     "outcome": { "enum": ["docs_win", "code_win", "tie", "inconclusive", "mixed"] },
+    "context": {
+      "type": "object",
+      "required": ["profile", "adequacy", "bounded_case_study"],
+      "properties": {
+        "profile": { "enum": ["app-local", "dependency-source", "full-repository"] },
+        "adequacy": { "enum": ["sufficient", "partial", "unknown"] },
+        "bounded_case_study": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
     "quality": { "type": "object" },
     "consumption": { "type": "object" },
     "feedback": { "type": "array" }

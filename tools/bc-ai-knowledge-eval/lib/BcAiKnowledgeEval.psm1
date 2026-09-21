@@ -268,6 +268,193 @@ function Assert-WorkspaceIsolation {
     }
 }
 
+function ConvertTo-RepositoryRelativePath {
+    param(
+        [Parameter(Mandatory = $true)] [string] $Path,
+        [Parameter(Mandatory = $true)] [string] $RepositoryRoot,
+        [Parameter(Mandatory = $true)] [string] $ArtifactName
+    )
+
+    if ([System.IO.Path]::IsPathRooted($Path)) { throw "$ArtifactName path must be repository-relative: $Path" }
+    $resolved = Resolve-EvalPath -Path $Path -BasePath $RepositoryRoot
+    if (-not (Test-IsPathInside -Child $resolved -Parent $RepositoryRoot) -and $resolved -ne $RepositoryRoot) {
+        throw "$ArtifactName path escapes the repository: $Path"
+    }
+    $relative = [System.IO.Path]::GetRelativePath($RepositoryRoot, $resolved).Replace('\', '/')
+    return $(if ([string]::IsNullOrWhiteSpace($relative)) { '.' } else { $relative })
+}
+
+function Test-RelativePathWithin {
+    param(
+        [Parameter(Mandatory = $true)] [string] $Path,
+        [Parameter(Mandatory = $true)] [string] $Parent
+    )
+
+    $normalizedPath = $Path.Replace('\', '/').Trim('/')
+    $normalizedParent = $Parent.Replace('\', '/').Trim('/')
+    if ($normalizedParent -eq '.') { return $true }
+    return $normalizedPath -eq $normalizedParent -or $normalizedPath.StartsWith("$normalizedParent/", [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+function Get-BcAiKnowledgeEvalContextManifest {
+    param(
+        [Parameter(Mandatory = $true)] $Config,
+        [Parameter(Mandatory = $true)] [string] $ConfigDirectory,
+        [Parameter(Mandatory = $true)] [string] $RepositoryRoot,
+        [Parameter(Mandatory = $true)] [string] $AppRelativePath,
+        [Parameter(Mandatory = $true)] [string[]] $LegacyWorkspacePaths
+    )
+
+    $contextManifestPath = $null
+    if ($Config.PSObject.Properties['context_manifest'] -and -not [string]::IsNullOrWhiteSpace([string]$Config.context_manifest)) {
+        $contextManifestPath = Resolve-EvalPath -Path ([string]$Config.context_manifest) -BasePath $ConfigDirectory
+        $manifest = Read-EvalJson -Path $contextManifestPath
+        Assert-SchemaVersion -Object $manifest -ArtifactName 'Context manifest'
+    } else {
+        $targetRecords = @($LegacyWorkspacePaths | ForEach-Object {
+            [pscustomobject]@{
+                path = $_
+                context_kind = if ($_ -eq $AppRelativePath -or (Test-RelativePathWithin -Path $AppRelativePath -Parent $_)) { 'implementation-source' } else { 'test-source' }
+                owner = 'legacy workspace_paths'
+                reason = 'Included by the legacy workspace_paths configuration.'
+                evidence = @()
+            }
+        })
+        $manifest = [pscustomobject]@{
+            schema_version = $script:SchemaVersion
+            context_profile = 'app-local'
+            target_paths = $targetRecords
+            dependency_paths = @()
+            exclusions = @()
+            shared_documentation_policy = 'include-and-disclose'
+            context_adequacy = 'unknown'
+            notes = 'Generated from legacy workspace_paths because no context_manifest was configured.'
+        }
+    }
+
+    foreach ($required in @('context_profile', 'target_paths', 'dependency_paths', 'shared_documentation_policy', 'context_adequacy')) {
+        if (-not $manifest.PSObject.Properties[$required]) { throw "Context manifest requires '$required'." }
+    }
+    if ([string]$manifest.context_profile -notin @('app-local', 'dependency-source', 'full-repository')) {
+        throw "Unsupported context profile '$($manifest.context_profile)'."
+    }
+    if ([string]$manifest.shared_documentation_policy -notin @('exclude', 'include-and-disclose')) {
+        throw "Unsupported shared documentation policy '$($manifest.shared_documentation_policy)'."
+    }
+    if ([string]$manifest.context_adequacy -notin @('sufficient', 'partial', 'unknown')) {
+        throw "Unsupported context adequacy '$($manifest.context_adequacy)'."
+    }
+    if (-not $manifest.PSObject.Properties['target_paths'] -or @($manifest.target_paths).Count -eq 0) {
+        throw 'Context manifest requires at least one target path.'
+    }
+    if (-not $manifest.PSObject.Properties['dependency_paths']) {
+        throw 'Context manifest requires dependency_paths, which may be empty.'
+    }
+    if ($manifest.context_profile -eq 'dependency-source' -and @($manifest.dependency_paths).Count -eq 0) {
+        throw 'The dependency-source profile requires at least one dependency path.'
+    }
+    if ($manifest.context_profile -eq 'app-local' -and @($manifest.dependency_paths).Count -gt 0) {
+        throw 'The app-local profile cannot declare dependency paths.'
+    }
+
+    $allRecords = [System.Collections.Generic.List[object]]::new()
+    foreach ($group in @('target_paths', 'dependency_paths')) {
+        foreach ($record in @($manifest.$group)) {
+            foreach ($required in @('path', 'context_kind', 'owner', 'reason')) {
+                if (-not $record.PSObject.Properties[$required] -or [string]::IsNullOrWhiteSpace([string]$record.$required)) {
+                    throw "Context manifest $group entry requires '$required'."
+                }
+            }
+            if ([string]$record.context_kind -notin @('implementation-source', 'test-source', 'symbol-metadata', 'shared-documentation')) {
+                throw "Unsupported context kind '$($record.context_kind)'."
+            }
+            $record.path = ConvertTo-RepositoryRelativePath -Path ([string]$record.path) -RepositoryRoot $RepositoryRoot -ArtifactName 'Context manifest'
+            if (-not $record.PSObject.Properties['evidence']) { $record | Add-Member -NotePropertyName evidence -NotePropertyValue @() }
+            $allRecords.Add($record)
+        }
+    }
+    $duplicatePaths = @($allRecords | Group-Object path | Where-Object Count -gt 1)
+    if ($duplicatePaths.Count -gt 0) { throw "Context manifest contains duplicate paths: $($duplicatePaths.Name -join ', ')" }
+    foreach ($targetEntry in @($manifest.target_paths)) {
+        $targetPath = [string]$targetEntry.path
+        foreach ($dependencyEntry in @($manifest.dependency_paths)) {
+            $dependencyPath = [string]$dependencyEntry.path
+            if ((Test-RelativePathWithin -Path $targetPath -Parent $dependencyPath) -or (Test-RelativePathWithin -Path $dependencyPath -Parent $targetPath)) {
+                throw "Context target and dependency paths overlap: $targetPath and $dependencyPath"
+            }
+        }
+    }
+    if (-not @($manifest.target_paths | Where-Object { Test-RelativePathWithin -Path $AppRelativePath -Parent ([string]$_.path) }).Count) {
+        throw 'Context manifest target_paths must include the selected app path.'
+    }
+
+    if (-not $manifest.PSObject.Properties['exclusions']) { $manifest | Add-Member -NotePropertyName exclusions -NotePropertyValue @() }
+    $normalizedExclusions = [System.Collections.Generic.List[object]]::new()
+    foreach ($exclusion in @($manifest.exclusions)) {
+        if (-not $exclusion.path -or -not $exclusion.reason) { throw 'Context exclusions require path and reason.' }
+        $exclusion.path = ConvertTo-RepositoryRelativePath -Path ([string]$exclusion.path) -RepositoryRoot $RepositoryRoot -ArtifactName 'Context exclusion'
+        $normalizedExclusions.Add($exclusion)
+    }
+    $manifest.exclusions = $normalizedExclusions.ToArray()
+
+    $workspacePaths = @($allRecords.path | Sort-Object -Unique)
+    $serialized = $manifest | ConvertTo-Json -Depth 100 -Compress
+    return [pscustomobject]@{
+        manifest = $manifest
+        manifest_path = $contextManifestPath
+        manifest_hash = Get-StringHash -Value $serialized
+        workspace_paths = $workspacePaths
+    }
+}
+
+function Get-DependencyMarkdownFiles {
+    param(
+        [Parameter(Mandatory = $true)] [string] $WorkspaceRoot,
+        [Parameter(Mandatory = $true)] $ContextManifest
+    )
+
+    $targetPaths = @($ContextManifest.target_paths | ForEach-Object { [string]$_.path })
+    $files = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($record in @($ContextManifest.dependency_paths)) {
+        $dependencyRoot = Join-Path $WorkspaceRoot ([string]$record.path)
+        if (-not (Test-Path -LiteralPath $dependencyRoot)) { continue }
+        $candidates = if (Test-Path -LiteralPath $dependencyRoot -PathType Leaf) { @(Get-Item -LiteralPath $dependencyRoot) } else { @(Get-ChildItem -LiteralPath $dependencyRoot -Recurse -File -Filter '*.md') }
+        foreach ($candidate in $candidates) {
+            if ($candidate.Extension -ne '.md') { continue }
+            $relative = [System.IO.Path]::GetRelativePath($WorkspaceRoot, $candidate.FullName).Replace('\', '/')
+            if (@($targetPaths | Where-Object { Test-RelativePathWithin -Path $relative -Parent $_ }).Count -eq 0) { [void]$files.Add($relative) }
+        }
+    }
+    return @($files | Sort-Object)
+}
+
+function Get-ContextPathProvenance {
+    param(
+        [Parameter(Mandatory = $true)] $WorkspaceManifest,
+        [Parameter(Mandatory = $true)] $ContextManifest
+    )
+
+    $records = [System.Collections.Generic.List[object]]::new()
+    foreach ($scope in @('target', 'dependency')) {
+        $property = "${scope}_paths"
+        foreach ($entry in @($ContextManifest.$property)) {
+            $matching = @($WorkspaceManifest.files | Where-Object { Test-RelativePathWithin -Path ([string]$_.path) -Parent ([string]$entry.path) })
+            $serialized = $matching | Select-Object path, size, sha256 | ConvertTo-Json -Depth 10 -Compress
+            $records.Add([pscustomobject]@{
+                scope = $scope
+                path = $entry.path
+                context_kind = $entry.context_kind
+                owner = $entry.owner
+                reason = $entry.reason
+                evidence = @($entry.evidence)
+                file_count = $matching.Count
+                tree_hash = Get-StringHash -Value $serialized
+            })
+        }
+    }
+    return $records.ToArray()
+}
+
 function Get-EvaluationArms {
     param([Parameter(Mandatory = $true)] $Context)
 
@@ -293,6 +480,11 @@ function Get-PreparedEvaluationManifest {
     if ($manifest.evaluation_id -ne $Context.config.evaluation_id) { throw 'Prepared evaluation ID does not match the config.' }
     $configHash = (Get-FileHash -LiteralPath $Context.config_path -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($manifest.config_hash -ne $configHash) { throw 'Evaluation config changed after preparation. Rerun prepare with -Force.' }
+    if (-not $manifest.PSObject.Properties['context']) {
+        if ($Context.context_manifest_path) { throw 'Prepared evaluation predates its configured context manifest. Rerun prepare with -Force.' }
+    } elseif ($manifest.context.manifest_hash -ne $Context.context_manifest_hash) {
+        throw 'Evaluation context manifest changed after preparation. Rerun prepare with -Force.'
+    }
     if ($manifest.workspace_isolation.status -ne 'verified') { throw 'Prepared workspace isolation is not verified.' }
     return $manifest
 }
@@ -573,6 +765,7 @@ function Initialize-BcAiKnowledgeEvaluation {
     $repositoryRoot = Get-RepositoryRoot -StartPath $PSScriptRoot
     $configDirectory = Split-Path -Parent $configFull
     $appPath = Resolve-EvalPath -Path $config.app_path -BasePath $repositoryRoot
+    $appRelativePath = [System.IO.Path]::GetRelativePath($repositoryRoot, $appPath).Replace('\', '/')
     $questionsPath = Resolve-EvalPath -Path $config.questions_file -BasePath $configDirectory
     $manifestPath = Resolve-EvalPath -Path $config.docs_manifest -BasePath $configDirectory
     $outputRoot = Resolve-EvalPath -Path $config.output_root -BasePath $configDirectory -AllowMissing
@@ -598,17 +791,21 @@ function Initialize-BcAiKnowledgeEvaluation {
     }
     if (@($manifestFiles | Sort-Object -Unique).Count -ne $manifestFiles.Count) { throw 'Docs manifest contains duplicate paths.' }
 
-    $workspacePaths = [System.Collections.Generic.List[string]]::new()
+    $legacyWorkspacePaths = [System.Collections.Generic.List[string]]::new()
     $configuredWorkspacePaths = if ($config.PSObject.Properties['workspace_paths'] -and @($config.workspace_paths).Count -gt 0) { @($config.workspace_paths) } else { @('.') }
     foreach ($workspacePath in $configuredWorkspacePaths) {
-        if ([System.IO.Path]::IsPathRooted([string]$workspacePath)) { throw "workspace_paths entries must be repository-relative: $workspacePath" }
-        $resolvedWorkspacePath = Resolve-EvalPath -Path ([string]$workspacePath) -BasePath $repositoryRoot
-        if (-not (Test-IsPathInside -Child $resolvedWorkspacePath -Parent $repositoryRoot) -and $resolvedWorkspacePath -ne $repositoryRoot) {
-            throw "workspace_paths entry escapes the repository: $workspacePath"
-        }
-        $workspacePaths.Add([System.IO.Path]::GetRelativePath($repositoryRoot, $resolvedWorkspacePath).Replace('\', '/'))
+        $legacyWorkspacePaths.Add((ConvertTo-RepositoryRelativePath -Path ([string]$workspacePath) -RepositoryRoot $repositoryRoot -ArtifactName 'workspace_paths'))
     }
-    if (@($workspacePaths | Sort-Object -Unique).Count -ne $workspacePaths.Count) { throw 'workspace_paths contains duplicate paths.' }
+    if (@($legacyWorkspacePaths | Sort-Object -Unique).Count -ne $legacyWorkspacePaths.Count) { throw 'workspace_paths contains duplicate paths.' }
+
+    $context = Get-BcAiKnowledgeEvalContextManifest -Config $config -ConfigDirectory $configDirectory -RepositoryRoot $repositoryRoot -AppRelativePath $appRelativePath -LegacyWorkspacePaths $legacyWorkspacePaths.ToArray()
+    if ($config.PSObject.Properties['context_manifest'] -and $config.context_manifest -and $config.PSObject.Properties['workspace_paths']) {
+        $legacySorted = @($legacyWorkspacePaths | Sort-Object)
+        $contextSorted = @($context.workspace_paths | Sort-Object)
+        if (($legacySorted | ConvertTo-Json -Compress) -ne ($contextSorted | ConvertTo-Json -Compress)) {
+            throw 'workspace_paths must match the target and dependency paths in context_manifest, or be omitted.'
+        }
+    }
 
     $appJson = Read-EvalJson -Path (Join-Path $appPath 'app.json')
     $evaluationRoot = Join-Path $outputRoot $config.evaluation_id
@@ -621,12 +818,15 @@ function Initialize-BcAiKnowledgeEvaluation {
         config = $config
         repository_root = $repositoryRoot
         app_path = $appPath
-        app_relative_path = [System.IO.Path]::GetRelativePath($repositoryRoot, $appPath).Replace('\', '/')
+        app_relative_path = $appRelativePath
         app_metadata = $appJson
         questions = $questions
         docs_manifest = $docsManifest
         docs_files = $manifestFiles
-        workspace_paths = $workspacePaths
+        workspace_paths = @($context.workspace_paths)
+        context_manifest = $context.manifest
+        context_manifest_path = $context.manifest_path
+        context_manifest_hash = $context.manifest_hash
         output_root = $outputRoot
         evaluation_root = $evaluationRoot
         repeats = $repeats
@@ -647,6 +847,9 @@ function Write-BcAiKnowledgeEvalValidationSummary {
         app_name = $Context.app_metadata.name
         question_count = $Context.questions.Count
         docs_file_count = $Context.docs_files.Count
+        context_profile = $Context.context_manifest.context_profile
+        context_adequacy = $Context.context_manifest.context_adequacy
+        dependency_path_count = @($Context.context_manifest.dependency_paths).Count
         arms = $arms
         repeats = $Context.repeats
         output_root = $Context.output_root
@@ -708,6 +911,18 @@ function New-BcAiKnowledgeEvalWorkspaces {
         $reproducible = $dirtyFiles.Count -eq 0
     }
 
+    $dependencyMarkdown = @(Get-DependencyMarkdownFiles -WorkspaceRoot $docsAssistedRoot -ContextManifest $Context.context_manifest)
+    $excludedDependencyDocumentation = @()
+    $sharedDependencyDocumentation = @()
+    if ($Context.context_manifest.shared_documentation_policy -eq 'exclude') {
+        foreach ($relativeDoc in $dependencyMarkdown) {
+            Remove-Item -LiteralPath (Join-Path $docsAssistedRoot $relativeDoc) -Force
+        }
+        $excludedDependencyDocumentation = $dependencyMarkdown
+    } else {
+        $sharedDependencyDocumentation = $dependencyMarkdown
+    }
+
     Copy-Item -LiteralPath $docsAssistedRoot -Destination $codeOnlyRoot -Recurse -Force
     foreach ($relativeDoc in $Context.docs_files) {
         $baselineDoc = Join-Path $codeOnlyRoot $relativeDoc
@@ -720,6 +935,8 @@ function New-BcAiKnowledgeEvalWorkspaces {
     $codeOnlyManifest = Get-WorkspaceManifestRecord -Root $codeOnlyRoot
     $docsAssistedManifest = Get-WorkspaceManifestRecord -Root $docsAssistedRoot
     $isolation = Assert-WorkspaceIsolation -CodeOnlyManifest $codeOnlyManifest -DocsAssistedManifest $docsAssistedManifest -DocsFiles $Context.docs_files
+    $codeOnlyContextProvenance = @(Get-ContextPathProvenance -WorkspaceManifest $codeOnlyManifest -ContextManifest $Context.context_manifest)
+    $docsAssistedContextProvenance = @(Get-ContextPathProvenance -WorkspaceManifest $docsAssistedManifest -ContextManifest $Context.context_manifest)
 
     New-Item -ItemType Directory -Path $manifestRoot -Force | Out-Null
     Write-JsonFile -Value $codeOnlyManifest -Path (Join-Path $manifestRoot 'code-only.json')
@@ -749,6 +966,19 @@ function New-BcAiKnowledgeEvalWorkspaces {
             dirty_files = $dirtyFiles
         }
         config_hash = (Get-FileHash -LiteralPath $Context.config_path -Algorithm SHA256).Hash.ToLowerInvariant()
+        context = [pscustomobject]@{
+            profile = $Context.context_manifest.context_profile
+            adequacy = $Context.context_manifest.context_adequacy
+            manifest_hash = $Context.context_manifest_hash
+            shared_documentation_policy = $Context.context_manifest.shared_documentation_policy
+            target_paths = @($Context.context_manifest.target_paths)
+            dependency_paths = @($Context.context_manifest.dependency_paths)
+            exclusions = @($Context.context_manifest.exclusions)
+            shared_dependency_documentation = $sharedDependencyDocumentation
+            excluded_dependency_documentation = $excludedDependencyDocumentation
+            code_only_path_provenance = $codeOnlyContextProvenance
+            docs_assisted_path_provenance = $docsAssistedContextProvenance
+        }
         questions = $questionRecords
         docs_files = @($Context.docs_files)
         arms = @(Get-EvaluationArms -Context $Context)

@@ -4,6 +4,7 @@
   "app_path": "tools/bc-ai-knowledge-eval/examples/sample-app",
   "questions_file": "questions.example.jsonl",
   "docs_manifest": "docs-manifest.example.json",
+  "context_manifest": "context-manifest.example.json",
   "output_root": "C:/temp/bc-ai-knowledge-eval",
   "answer_model": "replace-with-installed-model-name",
   "economical_model": null,
@@ -13,8 +14,5 @@
   "timeout_seconds": 900,
   "source_mode": "working-tree",
   "source_commit": null,
-  "workspace_paths": [
-    "tools/bc-ai-knowledge-eval/examples/sample-app"
-  ],
   "copilot_command": "copilot"
 }

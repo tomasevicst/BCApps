@@ -15,6 +15,30 @@ The tool is under active development. Current modes validate inputs, prepare iso
 
 No Business Central container or AL build is required.
 
+## Context profiles
+
+Every run has one source-context profile:
+
+- `app-local`: target app and directly related tests. Use as a bounded diagnostic.
+- `dependency-source`: target source plus a frozen, question-grounded set of dependency implementation and test source. Use for the primary realistic pilot.
+- `full-repository`: complete repository context. Use only as an optional retrieval-stress benchmark.
+
+The dependency-source profile does not require documenting the complete Base Application. Select coherent source folders or modules that own behavior needed by the approved questions, record why each path is included, and freeze that closure before answer generation. C0 and C1 receive identical dependency context; only target documentation differs.
+
+Set `context_manifest` in the evaluation config to an external JSON file. See [`examples/context-manifest.example.json`](./examples/context-manifest.example.json). Each target or dependency entry records:
+
+- Repository-relative `path`
+- `context_kind`: implementation source, test source, symbol metadata, or shared documentation
+- Owning app or module
+- Inclusion reason and optional question/evidence identifiers
+
+The manifest also records exclusions, context adequacy, and dependency documentation policy:
+
+- `exclude`: remove Markdown under dependency paths from both arms.
+- `include-and-disclose`: keep dependency Markdown identically in both arms and list it in reports.
+
+When both `context_manifest` and legacy `workspace_paths` are present, their path sets must match. Prefer omitting `workspace_paths` for new context-manifest runs.
+
 ## Privacy
 
 Keep real Teams questions, customer context, responses, logs, judgments, consumption data, and reports outside BCApps. The repository contains only schemas, templates, tests, and synthetic examples.
@@ -106,10 +130,13 @@ Automatic answer runs start a fresh Copilot process for each question, arm, and 
 
 Automatic judging caches valid content and evidence passes independently under `judge-pass-runs/`. If a pass returns malformed JSON, it is preserved under `judge-pass-failures/` and retried once with a delimiter-based response contract. Rerun `judge` without `-Force`; valid passes and complete judgments are reused while only missing or invalid work is retried.
 
+Prepared evaluations store context profile, adequacy, included paths, exclusions, shared or excluded dependency documentation, and per-path hashes in `evaluation-manifest.json`. Changing the context manifest invalidates the prepared evaluation and requires a new evaluation ID or `prepare -Force` before answer generation.
+
 ## Limitations
 
 - Copilot CLI token and credit telemetry varies by version. Metrics are reported as `measured`, `partial`, or `unavailable`.
 - Calibration reads aggregate rows from the local Copilot CLI session store in read-only mode. It records no prompt, response, checkpoint, or command content.
 - LLM judging is not accepted blindly. Contradictions, material errors, and low-confidence comparisons remain inconclusive until adjudicated.
 - The tool evaluates the selected source snapshot. It does not infer behavior for other releases or localizations.
+- App-local reports are explicitly labeled as bounded case studies. Dependency-source runs should use a new evaluation ID and the same questions/models when measuring context sensitivity.
 - CI and a Copilot skill wrapper are deferred until the local runner is stable.

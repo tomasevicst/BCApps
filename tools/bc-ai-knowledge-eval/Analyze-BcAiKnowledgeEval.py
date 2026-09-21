@@ -201,6 +201,32 @@ def question_feedback(primary: dict[str, Any]) -> list[dict[str, Any]]:
     return []
 
 
+def context_summary(manifest: dict[str, Any]) -> dict[str, Any]:
+    context = manifest.get("context") if isinstance(manifest.get("context"), dict) else {}
+    profile = str(context.get("profile", "app-local"))
+    adequacy = str(context.get("adequacy", "unknown"))
+    note = (
+        "Bounded app-local context; dependency implementation may be unavailable."
+        if profile == "app-local"
+        else "Dependency context is frozen and shared by all answer arms."
+    )
+    return {
+        "profile": profile,
+        "adequacy": adequacy,
+        "bounded_case_study": profile == "app-local",
+        "note": note,
+        "manifest_hash": context.get("manifest_hash"),
+        "shared_documentation_policy": context.get("shared_documentation_policy"),
+        "target_paths": context.get("target_paths", []),
+        "dependency_paths": context.get("dependency_paths", []),
+        "exclusions": context.get("exclusions", []),
+        "shared_dependency_documentation": context.get("shared_dependency_documentation", []),
+        "excluded_dependency_documentation": context.get("excluded_dependency_documentation", []),
+        "code_only_path_provenance": context.get("code_only_path_provenance", []),
+        "docs_assisted_path_provenance": context.get("docs_assisted_path_provenance", []),
+    }
+
+
 def render_question_markdown(report: dict[str, Any]) -> str:
     lines = [
         f"# Evaluation: {report['question_id']}",
@@ -208,6 +234,10 @@ def render_question_markdown(report: dict[str, Any]) -> str:
         f"**Outcome:** {report['outcome']}  ",
         f"**Confidence:** {report['quality']['primary_consensus']['confidence']}  ",
         f"**Human review required:** {str(report['quality']['primary_consensus']['human_review_required']).lower()}",
+        f"**Context profile:** {report['context']['profile']}  ",
+        f"**Context adequacy:** {report['context']['adequacy']}  ",
+        "",
+        f"> {report['context']['note']}",
         "",
         "## Question",
         "",
@@ -243,6 +273,7 @@ def analyze_evaluation(root: Path) -> dict[str, Any]:
         raise ValueError("No run artifacts are available.")
     if not judgments:
         raise ValueError("No judgment artifacts are available.")
+    evaluation_context = context_summary(manifest)
 
     runs_by_question: dict[str, list[dict[str, Any]]] = defaultdict(list)
     judgments_by_question: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -278,6 +309,7 @@ def analyze_evaluation(root: Path) -> dict[str, Any]:
                 "workspace_isolation": manifest.get("workspace_isolation"),
                 "workspaces": manifest.get("workspaces"),
             },
+            "context": evaluation_context,
             "answers": {
                 arm: [str(item.get("response_text", "")) for item in question_runs if item.get("arm") == arm]
                 for arm in sorted({str(item.get("arm")) for item in question_runs})
@@ -309,6 +341,7 @@ def analyze_evaluation(root: Path) -> dict[str, Any]:
         "outcome": aggregate_outcome,
         "sample_size": len(question_reports),
         "study_type": "case_study" if len(question_reports) < 10 else "benchmark",
+        "context": evaluation_context,
         "outcome_counts": dict(sorted(outcome_counts.items())),
         "human_review_required": any(item["quality"]["primary_consensus"]["human_review_required"] for item in question_reports),
         "quality": {"questions": [{"question_id": item["question_id"], "outcome": item["outcome"]} for item in question_reports]},
@@ -323,6 +356,10 @@ def analyze_evaluation(root: Path) -> dict[str, Any]:
         f"**Questions:** {aggregate['sample_size']}  ",
         f"**Study type:** {aggregate['study_type']}  ",
         f"**Outcome:** {aggregate['outcome']}",
+        f"**Context profile:** {aggregate['context']['profile']}  ",
+        f"**Context adequacy:** {aggregate['context']['adequacy']}",
+        "",
+        f"> {aggregate['context']['note']}",
         "",
         "## Outcomes",
         "",
